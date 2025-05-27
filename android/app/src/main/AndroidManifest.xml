@@ -34,9 +34,15 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
-        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
-            <intent-filter>
+        <!-- Notification receivers with explicit exported attributes -->
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" 
+            android:exported="false" />
+            
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="true">
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
