@@ -1,9 +1,11 @@
+// lib/views/alarm_list_view.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import 'add_alarm_view.dart';
+import 'edit_alarm_dialog.dart';
 
 class AlarmListView extends StatefulWidget {
   const AlarmListView({super.key});
@@ -34,6 +36,15 @@ class _AlarmListViewState extends State<AlarmListView> {
         ),
         backgroundColor: const Color(0xFF5C4FFF),
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.read<AlarmViewModel>().loadAlarms();
+            },
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh Alarms',
+          ),
+        ],
       ),
       body: Consumer<AlarmViewModel>(
         builder: (context, viewModel, child) {
@@ -45,9 +56,29 @@ class _AlarmListViewState extends State<AlarmListView> {
 
           if (viewModel.alarms.isEmpty) {
             return const Center(
-              child: Text(
-                'No alarms yet. Tap + to add one!',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.alarm_off,
+                    size: 64,
+                    color: Colors.white70,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No alarms yet',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tap + to add your first alarm!',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
               ),
             );
           }
@@ -73,6 +104,8 @@ class _AlarmListViewState extends State<AlarmListView> {
   Widget _buildAlarmCard(BuildContext context, AlarmModel alarm, AlarmViewModel viewModel) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -81,15 +114,18 @@ class _AlarmListViewState extends State<AlarmListView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  alarm.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5C4FFF),
+                Expanded(
+                  child: Text(
+                    alarm.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5C4FFF),
+                    ),
                   ),
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Switch(
                       value: alarm.isActive,
@@ -98,22 +134,83 @@ class _AlarmListViewState extends State<AlarmListView> {
                       },
                       activeColor: const Color(0xFF5C4FFF),
                     ),
-                    IconButton(
-                      onPressed: () => _showDeleteConfirmation(context, alarm, viewModel),
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            _showEditAlarmDialog(context, alarm);
+                            break;
+                          case 'delete':
+                            _showDeleteConfirmation(context, alarm, viewModel);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      child: const Icon(Icons.more_vert),
                     ),
                   ],
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  _buildAlarmDetail('Next alarm:', _formatDateTime(alarm.nextAlarmDateTime)),
+                  if (alarm.lastAlarmDateTime != null)
+                    _buildAlarmDetail('Last alarm:', _formatDateTime(alarm.lastAlarmDateTime!)),
+                  if (alarm.realAlarmDateTime != null)
+                    _buildAlarmDetail('Real alarm:', _formatDateTime(alarm.realAlarmDateTime!)),
+                  _buildAlarmDetail('Periodicity:', alarm.periodicity.formattedString),
+                  _buildAlarmDetail('Audio file:', alarm.audioFile),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
-            _buildAlarmDetail('Next alarm:', _formatDateTime(alarm.nextAlarmDateTime)),
-            if (alarm.lastAlarmDateTime != null)
-              _buildAlarmDetail('Last alarm:', _formatDateTime(alarm.lastAlarmDateTime!)),
-            if (alarm.realAlarmDateTime != null)
-              _buildAlarmDetail('Real alarm:', _formatDateTime(alarm.realAlarmDateTime!)),
-            _buildAlarmDetail('Periodicity:', alarm.periodicity.formattedString),
-            _buildAlarmDetail('Audio file:', alarm.audioFile),
+            Row(
+              children: [
+                Icon(
+                  alarm.isActive ? Icons.check_circle : Icons.cancel,
+                  color: alarm.isActive ? Colors.green : Colors.red,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  alarm.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    color: alarm.isActive ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -130,11 +227,17 @@ class _AlarmListViewState extends State<AlarmListView> {
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+              ),
             ),
           ),
           Expanded(
-            child: Text(value),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -152,12 +255,44 @@ class _AlarmListViewState extends State<AlarmListView> {
     );
   }
 
+  void _showEditAlarmDialog(BuildContext context, AlarmModel alarm) {
+    showDialog(
+      context: context,
+      builder: (context) => EditAlarmDialog(alarm: alarm),
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context, AlarmModel alarm, AlarmViewModel viewModel) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Alarm'),
-        content: Text('Are you sure you want to delete "${alarm.name}"?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete this alarm?'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Name: ${alarm.name}',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  Text('Next: ${_formatDateTime(alarm.nextAlarmDateTime)}'),
+                  Text('Periodicity: ${alarm.periodicity.formattedString}'),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -167,6 +302,12 @@ class _AlarmListViewState extends State<AlarmListView> {
             onPressed: () {
               viewModel.deleteAlarm(alarm.id);
               Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Alarm "${alarm.name}" deleted'),
+                  backgroundColor: Colors.red,
+                ),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
