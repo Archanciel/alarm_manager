@@ -1,9 +1,10 @@
-// lib/views/alarm_list_view.dart
+// lib/views/alarm_list_view.dart - Enhanced with debugging
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
+import '../services/alarm_service.dart';
 import 'add_alarm_view.dart';
 import 'edit_alarm_dialog.dart';
 
@@ -43,6 +44,11 @@ class _AlarmListViewState extends State<AlarmListView> {
             },
             icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'Refresh Alarms',
+          ),
+          IconButton(
+            onPressed: _showDebugDialog,
+            icon: const Icon(Icons.bug_report, color: Colors.white),
+            tooltip: 'Debug Tools',
           ),
         ],
       ),
@@ -102,6 +108,10 @@ class _AlarmListViewState extends State<AlarmListView> {
   }
 
   Widget _buildAlarmCard(BuildContext context, AlarmModel alarm, AlarmViewModel viewModel) {
+    final now = DateTime.now();
+    final isPastDue = now.isAfter(alarm.nextAlarmDateTime);
+    final timeDiff = alarm.nextAlarmDateTime.difference(now);
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 4,
@@ -140,6 +150,9 @@ class _AlarmListViewState extends State<AlarmListView> {
                           case 'edit':
                             _showEditAlarmDialog(context, alarm);
                             break;
+                          case 'test':
+                            _testAlarm(alarm);
+                            break;
                           case 'delete':
                             _showDeleteConfirmation(context, alarm, viewModel);
                             break;
@@ -153,6 +166,16 @@ class _AlarmListViewState extends State<AlarmListView> {
                               Icon(Icons.edit, color: Colors.blue),
                               SizedBox(width: 8),
                               Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'test',
+                          child: Row(
+                            children: [
+                              Icon(Icons.play_arrow, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Test Now'),
                             ],
                           ),
                         ),
@@ -174,6 +197,57 @@ class _AlarmListViewState extends State<AlarmListView> {
               ],
             ),
             const SizedBox(height: 12),
+            
+            // Time status indicator
+            if (isPastDue && alarm.isActive)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.red[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning, color: Colors.red[700], size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'OVERDUE by ${timeDiff.abs().inMinutes} min',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (alarm.isActive)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green[100],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule, color: Colors.green[700], size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'in ${timeDiff.inHours}h ${timeDiff.inMinutes % 60}m',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+            const SizedBox(height: 8),
+            
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -259,6 +333,70 @@ class _AlarmListViewState extends State<AlarmListView> {
     showDialog(
       context: context,
       builder: (context) => EditAlarmDialog(alarm: alarm),
+    );
+  }
+
+  void _testAlarm(AlarmModel alarm) async {
+    try {
+      _logger.i('Testing alarm: ${alarm.name}');
+      final alarmService = AlarmService();
+      await alarmService.triggerAlarmNow(alarm.id);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Testing alarm "${alarm.name}"'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      _logger.e('Error testing alarm: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error testing alarm: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showDebugDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug Tools'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Check All Alarms'),
+              subtitle: const Text('Manually check if any alarms should trigger'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final alarmService = AlarmService();
+                await alarmService.checkAndTriggerAlarms();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Alarm check completed - check logs'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('Current Time'),
+              subtitle: Text(DateTime.now().toString()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
