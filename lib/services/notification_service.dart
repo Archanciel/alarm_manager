@@ -93,7 +93,7 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
       
-      _logger.i('Scheduled notification for alarm: ${alarm.name} at ${scheduledDate}');
+      _logger.i('Scheduled notification for alarm: ${alarm.name} at $scheduledDate');
     } catch (e) {
       _logger.e('Error scheduling notification: $e');
     }

@@ -6,7 +6,7 @@ import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
 
 class AddAlarmDialog extends StatefulWidget {
-  const AddAlarmDialog({Key? key}) : super(key: key);
+  const AddAlarmDialog({super.key});
 
   @override
   State<AddAlarmDialog> createState() => _AddAlarmDialogState();

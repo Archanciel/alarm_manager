@@ -6,7 +6,7 @@ import '../models/alarm_model.dart';
 import 'add_alarm_view.dart';
 
 class AlarmListView extends StatefulWidget {
-  const AlarmListView({Key? key}) : super(key: key);
+  const AlarmListView({super.key});
 
   @override
   State<AlarmListView> createState() => _AlarmListViewState();

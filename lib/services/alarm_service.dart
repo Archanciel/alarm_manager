@@ -1,6 +1,8 @@
+// lib/services/alarm_service.dart
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import '../models/alarm_model.dart';
 import 'notification_service.dart';
 import 'audio_service.dart';
@@ -45,8 +47,9 @@ class AlarmService {
       alarms.add(alarm);
       await saveAlarms(alarms);
       
-      // Schedule notification
+      // Schedule notification and background alarm
       await _notificationService.scheduleAlarmNotification(alarm);
+      await _scheduleBackgroundAlarm(alarm);
       
       _logger.i('Alarm added: ${alarm.name}');
     } catch (e) {
@@ -60,11 +63,15 @@ class AlarmService {
       final index = alarms.indexWhere((alarm) => alarm.id == updatedAlarm.id);
       
       if (index != -1) {
+        // Cancel old alarm
+        await _cancelBackgroundAlarm(alarms[index]);
+        
         alarms[index] = updatedAlarm;
         await saveAlarms(alarms);
         
-        // Reschedule notification
+        // Reschedule notification and background alarm
         await _notificationService.scheduleAlarmNotification(updatedAlarm);
+        await _scheduleBackgroundAlarm(updatedAlarm);
         
         _logger.i('Alarm updated: ${updatedAlarm.name}');
       }
@@ -76,6 +83,11 @@ class AlarmService {
   Future<void> deleteAlarm(String alarmId) async {
     try {
       final alarms = await getAlarms();
+      final alarmToDelete = alarms.firstWhere((alarm) => alarm.id == alarmId);
+      
+      // Cancel background alarm
+      await _cancelBackgroundAlarm(alarmToDelete);
+      
       alarms.removeWhere((alarm) => alarm.id == alarmId);
       await saveAlarms(alarms);
       
@@ -88,23 +100,58 @@ class AlarmService {
     }
   }
 
-  Future<void> checkAndTriggerAlarms() async {
+  Future<void> _scheduleBackgroundAlarm(AlarmModel alarm) async {
     try {
-      final alarms = await getAlarms();
-      final now = DateTime.now();
+      final alarmId = alarm.id.hashCode;
       
-      for (final alarm in alarms) {
-        if (alarm.isActive && now.isAfter(alarm.nextAlarmDateTime)) {
-          await _triggerAlarm(alarm);
-        }
-      }
+      // Schedule exact alarm
+      await AndroidAlarmManager.oneShotAt(
+        alarm.nextAlarmDateTime,
+        alarmId,
+        _backgroundAlarmCallback,
+        exact: true,
+        wakeup: true,
+        params: {'alarmId': alarm.id},
+      );
+      
+      _logger.i('Scheduled background alarm for: ${alarm.name}');
     } catch (e) {
-      _logger.e('Error checking alarms: $e');
+      _logger.e('Error scheduling background alarm: $e');
     }
   }
 
-  Future<void> _triggerAlarm(AlarmModel alarm) async {
+  Future<void> _cancelBackgroundAlarm(AlarmModel alarm) async {
     try {
+      final alarmId = alarm.id.hashCode;
+      await AndroidAlarmManager.cancel(alarmId);
+      _logger.i('Cancelled background alarm for: ${alarm.name}');
+    } catch (e) {
+      _logger.e('Error cancelling background alarm: $e');
+    }
+  }
+
+  @pragma('vm:entry-point')
+  static void _backgroundAlarmCallback(int id, Map<String, dynamic> params) async {
+    final logger = Logger();
+    logger.i('Background alarm triggered with id: $id');
+    
+    try {
+      final alarmService = AlarmService();
+      final alarmId = params['alarmId'] as String?;
+      
+      if (alarmId != null) {
+        await alarmService._handleAlarmTrigger(alarmId);
+      }
+    } catch (e) {
+      logger.e('Error in background alarm callback: $e');
+    }
+  }
+
+  Future<void> _handleAlarmTrigger(String alarmId) async {
+    try {
+      final alarms = await getAlarms();
+      final alarm = alarms.firstWhere((a) => a.id == alarmId);
+      
       _logger.i('Triggering alarm: ${alarm.name}');
       
       // Play alarm sound
@@ -126,7 +173,22 @@ class AlarmService {
       await updateAlarm(updatedAlarm);
       
     } catch (e) {
-      _logger.e('Error triggering alarm: $e');
+      _logger.e('Error handling alarm trigger: $e');
+    }
+  }
+
+  Future<void> checkAndTriggerAlarms() async {
+    try {
+      final alarms = await getAlarms();
+      final now = DateTime.now();
+      
+      for (final alarm in alarms) {
+        if (alarm.isActive && now.isAfter(alarm.nextAlarmDateTime)) {
+          await _handleAlarmTrigger(alarm.id);
+        }
+      }
+    } catch (e) {
+      _logger.e('Error checking alarms: $e');
     }
   }
 
