@@ -376,7 +376,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
                 children: [
                   if (alarm.realAlarmDateTime != null)
                     _buildAlarmDetail(
-                      'Real trig. alarm:',
+                      'Real triggered alarm:',
                       _formatDateTime(alarm.realAlarmDateTime!),
                     ),
                   if (alarm.lastAlarmDateTime != null)
@@ -432,7 +432,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 100, child: Text(label, style: textStyle)),
+          SizedBox(width: 140, child: Text(label, style: textStyle)),
           Expanded(child: Text(value, style: textStyle)),
         ],
       ),
