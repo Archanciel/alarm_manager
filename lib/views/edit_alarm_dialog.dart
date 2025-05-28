@@ -87,19 +87,64 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: ListTile(
-                        title: const Text('Date'),
-                        subtitle: Text(_formatDate(_selectedDate)),
+                      child: InkWell(
                         onTap: _selectDate,
-                        contentPadding: EdgeInsets.zero,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Date',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatDate(_selectedDate),
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 16),
                     Expanded(
-                      child: ListTile(
-                        title: const Text('Time'),
-                        subtitle: Text(_selectedTime.format(context)),
+                      child: InkWell(
                         onTap: _selectTime,
-                        contentPadding: EdgeInsets.zero,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Time',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedTime.format(context),
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -226,30 +271,40 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
   }
 
   Future<void> _selectDate() async {
+    _logger.i('Date selector tapped');
+    
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)), // Allow today
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     
     if (date != null) {
+      _logger.i('New date selected: $date');
       setState(() {
         _selectedDate = date;
       });
+    } else {
+      _logger.i('Date selection cancelled');
     }
   }
 
   Future<void> _selectTime() async {
+    _logger.i('Time selector tapped');
+    
     final time = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
     );
     
     if (time != null) {
+      _logger.i('New time selected: $time');
       setState(() {
         _selectedTime = time;
       });
+    } else {
+      _logger.i('Time selection cancelled');
     }
   }
 
