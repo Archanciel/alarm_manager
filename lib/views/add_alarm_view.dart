@@ -22,11 +22,15 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   TimeOfDay _selectedTime = TimeOfDay.now();
   DateTime _selectedDate = DateTime.now();
-  String _selectedAudioFile = 'pianist_s8.mp3';
+  String _selectedAudioFile = 'pianist_s8 soft.mp3';
 
   final List<String> _audioFiles = [
-    'pianist_s8.mp3',
-    'arroser la plante.mp3',
+    'arroser la plante softer.mp3',
+    'arroser la plante soft.mp3',
+    'arroser la plante normal.mp3',
+    'pianist_s8 softer.mp3',
+    'pianist_s8 soft.mp3',
+    'pianist_s8 normal.mp3',
   ];
 
   @override

@@ -28,8 +28,12 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
   late String _selectedAudioFile;
 
   final List<String> _audioFiles = [
-    'pianist_s8.mp3',
-    'arroser la plante.mp3',
+    'arroser la plante softer.mp3',
+    'arroser la plante soft.mp3',
+    'arroser la plante normal.mp3',
+    'pianist_s8 softer.mp3',
+    'pianist_s8 soft.mp3',
+    'pianist_s8 normal.mp3',
   ];
 
   @override
