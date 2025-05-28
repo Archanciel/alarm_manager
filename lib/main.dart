@@ -40,7 +40,7 @@ Future<void> _requestPermissions() async {
 class AlarmManagerApp extends StatelessWidget {
   final BackgroundService backgroundService;
   
-  const AlarmManagerApp({Key? key, required this.backgroundService}) : super(key: key);
+  const AlarmManagerApp({super.key, required this.backgroundService});
 
   @override
   Widget build(BuildContext context) {

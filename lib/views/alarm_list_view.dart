@@ -1,6 +1,4 @@
 // lib/views/alarm_list_view.dart - Enhanced with auto-refresh
-import 'package:alarm_manager/services/background_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';

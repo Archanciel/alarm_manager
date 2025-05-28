@@ -1,8 +1,7 @@
-// lib/services/alarm_service.dart - Fixed next alarm calculation and timezone handling
+// lib/services/alarm_service.dart - Completely silent background alarms
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import '../models/alarm_model.dart';
 import 'notification_service.dart';
 import 'audio_service.dart';
@@ -46,14 +45,10 @@ class AlarmService {
       alarms.add(alarm);
       await saveAlarms(alarms);
 
-      // Schedule notification and background alarm
+      // Schedule ONLY silent notification - NO AndroidAlarmManager
       await _notificationService.scheduleAlarmNotification(alarm);
-      await _scheduleBackgroundAlarm(alarm);
-
-      // Also schedule a manual check slightly after the alarm time for debugging
-      await _scheduleDebugCheck(alarm);
-
-      _logger.i('Alarm added: ${alarm.name} for ${alarm.nextAlarmDateTime}');
+      
+      _logger.i('✅ Alarm added (SILENT): ${alarm.name} for ${alarm.nextAlarmDateTime}');
     } catch (e) {
       _logger.e('Error adding alarm: $e');
     }
@@ -65,17 +60,12 @@ class AlarmService {
       final index = alarms.indexWhere((alarm) => alarm.id == updatedAlarm.id);
 
       if (index != -1) {
-        // Cancel old alarm
-        await _cancelBackgroundAlarm(alarms[index]);
-
         alarms[index] = updatedAlarm;
         await saveAlarms(alarms);
 
-        // Only reschedule if the alarm is in the future
+        // Only reschedule silent notification
         if (updatedAlarm.nextAlarmDateTime.isAfter(DateTime.now())) {
           await _notificationService.scheduleAlarmNotification(updatedAlarm);
-          await _scheduleBackgroundAlarm(updatedAlarm);
-          await _scheduleDebugCheck(updatedAlarm);
         } else {
           _logger.w('Skipping scheduling for past alarm: ${updatedAlarm.name}');
         }
@@ -90,12 +80,6 @@ class AlarmService {
   Future<void> deleteAlarm(String alarmId) async {
     try {
       final alarms = await getAlarms();
-      final alarmToDelete = alarms.firstWhere((alarm) => alarm.id == alarmId);
-
-      // Cancel background alarm
-      await _cancelBackgroundAlarm(alarmToDelete);
-      await _cancelDebugCheck(alarmToDelete);
-
       alarms.removeWhere((alarm) => alarm.id == alarmId);
       await saveAlarms(alarms);
 
@@ -105,173 +89,6 @@ class AlarmService {
       _logger.i('Alarm deleted: $alarmId');
     } catch (e) {
       _logger.e('Error deleting alarm: $e');
-    }
-  }
-
-  Future<void> _scheduleBackgroundAlarm(AlarmModel alarm) async {
-    try {
-      final alarmId = alarm.id.hashCode;
-      final now = DateTime.now();
-
-      _logger.i('Scheduling alarm: ${alarm.name}');
-      _logger.i('Current time: $now');
-      _logger.i('Alarm time: ${alarm.nextAlarmDateTime}');
-      _logger.i(
-        'Time difference: ${alarm.nextAlarmDateTime.difference(now).inMinutes} minutes',
-      );
-
-      // Only schedule if in the future
-      if (alarm.nextAlarmDateTime.isAfter(now)) {
-        await AndroidAlarmManager.oneShotAt(
-          alarm.nextAlarmDateTime,
-          alarmId,
-          _backgroundAlarmCallback,
-          exact: true,
-          wakeup: true,
-          allowWhileIdle: true,
-          params: {'alarmId': alarm.id, 'alarmName': alarm.name},
-        );
-
-        _logger.i(
-          'Successfully scheduled background alarm for: ${alarm.name} at ${alarm.nextAlarmDateTime}',
-        );
-      } else {
-        _logger.w('Cannot schedule alarm in the past: ${alarm.name}');
-      }
-    } catch (e) {
-      _logger.e('Error scheduling background alarm: $e');
-    }
-  }
-
-  Future<void> _scheduleDebugCheck(AlarmModel alarm) async {
-    try {
-      // Only schedule debug check if the alarm is in the future
-      if (!alarm.nextAlarmDateTime.isAfter(DateTime.now())) {
-        return;
-      }
-
-      final debugTime = alarm.nextAlarmDateTime.add(const Duration(minutes: 1));
-      final debugId = alarm.id.hashCode + 100000;
-
-      await AndroidAlarmManager.oneShotAt(
-        debugTime,
-        debugId,
-        _debugCheckCallback,
-        exact: true,
-        wakeup: true,
-        allowWhileIdle: true,
-        params: {
-          'alarmId': alarm.id,
-          'originalTime': alarm.nextAlarmDateTime.toIso8601String(),
-        },
-      );
-
-      _logger.i('Scheduled debug check for alarm: ${alarm.name} at $debugTime');
-    } catch (e) {
-      _logger.e('Error scheduling debug check: $e');
-    }
-  }
-
-  Future<void> _cancelBackgroundAlarm(AlarmModel alarm) async {
-    try {
-      final alarmId = alarm.id.hashCode;
-      await AndroidAlarmManager.cancel(alarmId);
-      _logger.i('Cancelled background alarm for: ${alarm.name}');
-    } catch (e) {
-      _logger.e('Error cancelling background alarm: $e');
-    }
-  }
-
-  Future<void> _cancelDebugCheck(AlarmModel alarm) async {
-    try {
-      final debugId = alarm.id.hashCode + 100000;
-      await AndroidAlarmManager.cancel(debugId);
-      _logger.i('Cancelled debug check for: ${alarm.name}');
-    } catch (e) {
-      _logger.e('Error cancelling debug check: $e');
-    }
-  }
-
-  /// This function is called by AndroidAlarmManager from native Android code.
-  ///
-  /// What happens without the 'pragma' annotation:
-  ///
-  /// Release builds might fail - Functions get removed during optimization.
-  /// Background alarms won't work - The callback functions don't exist.
-  /// Silent failures - No error messages, alarms just don't trigger.
-  /// Works in debug, fails in release - Debug builds are less optimized.
-  ///
-  /// Removing these annotations would likely cause alarms to work in debug
-  /// mode but fail silently in release builds - which is exactly the kind of
-  /// bug that's hard to track down !
-  /// It's basically telling Flutter: "Trust me, this function IS used, even
-  /// though you can't see how !".
-  @pragma('vm:entry-point')
-  static void _backgroundAlarmCallback(
-    int id,
-    Map<String, dynamic> params,
-  ) async {
-    final logger = Logger();
-    final now = DateTime.now();
-    logger.i('🔔 ALARM TRIGGERED! Background alarm callback executed at $now');
-    logger.i('Alarm ID: $id');
-    logger.i('Params: $params');
-
-    try {
-      final alarmService = AlarmService();
-      final alarmId = params['alarmId'] as String?;
-      final alarmName = params['alarmName'] as String? ?? 'Unknown';
-
-      logger.i('Triggering alarm: $alarmName (ID: $alarmId)');
-
-      if (alarmId != null) {
-        await alarmService._handleAlarmTrigger(alarmId);
-      }
-    } catch (e) {
-      logger.e('Error in background alarm callback: $e');
-    }
-  }
-
-  /// This function is called by the periodic background service.
-  ///
-  /// What happens without the 'pragma' annotation:
-  ///
-  /// Release builds might fail - Functions get removed during optimization.
-  /// Background alarms won't work - The callback functions don't exist.
-  /// Silent failures - No error messages, alarms just don't trigger.
-  /// Works in debug, fails in release - Debug builds are less optimized.
-  ///
-  /// Removing these annotations would likely cause alarms to work in debug
-  /// mode but fail silently in release builds - which is exactly the kind of
-  /// bug that's hard to track down !
-  /// It's basically telling Flutter: "Trust me, this function IS used, even
-  /// though you can't see how !".
-  @pragma('vm:entry-point')
-  static void _debugCheckCallback(int id, Map<String, dynamic> params) async {
-    final logger = Logger();
-    final now = DateTime.now();
-    logger.i('🐛 DEBUG CHECK: Running at $now');
-    logger.i('Debug ID: $id');
-    logger.i('Params: $params');
-
-    try {
-      final alarmService = AlarmService();
-      final alarmId = params['alarmId'] as String?;
-      final originalTimeStr = params['originalTime'] as String?;
-
-      if (originalTimeStr != null) {
-        final originalTime = DateTime.parse(originalTimeStr);
-        logger.i('Original alarm time was: $originalTime');
-        logger.i('Current time: $now');
-        logger.i(
-          'Time since alarm should have triggered: ${now.difference(originalTime).inMinutes} minutes',
-        );
-      }
-
-      // Force check all alarms
-      await alarmService.checkAndTriggerAlarms();
-    } catch (e) {
-      logger.e('Error in debug check callback: $e');
     }
   }
 
@@ -288,15 +105,16 @@ class AlarmService {
       final alarm = alarms[alarmIndex];
 
       _logger.i('🎵 Handling alarm trigger: ${alarm.name}');
+      _logger.i('🔊 Playing ONLY custom sound: ${alarm.audioFile}');
 
-      // Play alarm sound
+      // Play ONLY custom sound - no system sounds involved
       await _audioService.playAlarm(alarm.audioFile);
-
-      // Show notification
+      
+      // Show completely silent notification
       await _notificationService.showAlarmTriggeredNotification(alarm);
 
-      // Calculate next alarm time - FIXED CALCULATION
-      final DateTime nextAlarmTime = _calculateNextAlarmTime(
+      // Calculate next alarm time
+      final nextAlarmTime = _calculateNextAlarmTime(
         alarm.nextAlarmDateTime,
         alarm.periodicity,
       );
@@ -317,14 +135,12 @@ class AlarmService {
       alarms[alarmIndex] = updatedAlarm;
       await saveAlarms(alarms);
 
-      // Schedule the next occurrence
+      // Schedule the next occurrence (silent notification only)
       await _notificationService.scheduleAlarmNotification(updatedAlarm);
-      await _scheduleBackgroundAlarm(updatedAlarm);
-      await _scheduleDebugCheck(updatedAlarm);
 
-      _logger.i(
-        'Alarm "${alarm.name}" triggered successfully. Next alarm: $nextAlarmTime',
-      );
+      _logger.i('✅ Alarm "${alarm.name}" triggered with CUSTOM sound ONLY');
+      _logger.i('🔊 NO system sounds - Playing: ${alarm.audioFile}');
+      
     } catch (e) {
       _logger.e('Error handling alarm trigger: $e');
     }
@@ -354,7 +170,7 @@ class AlarmService {
       final alarms = await getAlarms();
       final now = DateTime.now();
 
-      _logger.i('🔍 Checking ${alarms.length} alarms at $now');
+      _logger.i('🔍 Checking ${alarms.length} alarms at $now (SILENT mode)');
 
       for (final alarm in alarms) {
         _logger.i('Checking alarm: ${alarm.name}');
@@ -363,7 +179,7 @@ class AlarmService {
         _logger.i('  - Time passed: ${now.isAfter(alarm.nextAlarmDateTime)}');
 
         if (alarm.isActive && now.isAfter(alarm.nextAlarmDateTime)) {
-          _logger.i('⏰ Triggering overdue alarm: ${alarm.name}');
+          _logger.i('⏰ Triggering overdue alarm (CUSTOM sound only): ${alarm.name}');
           await _handleAlarmTrigger(alarm.id);
         }
       }
@@ -372,11 +188,10 @@ class AlarmService {
     }
   }
 
-  /// Manual trigger for testing. Called when the user clicks on the 'Force Trigger
-  /// sub-menu. Overdue'
+  /// Manual trigger for testing - completely silent except for custom MP3
   Future<void> triggerAlarmNow(String alarmId) async {
     try {
-      _logger.i('🧪 Manually triggering alarm: $alarmId');
+      _logger.i('🧪 Manually triggering alarm (CUSTOM sound only): $alarmId');
       await _handleAlarmTrigger(alarmId);
     } catch (e) {
       _logger.e('Error manually triggering alarm: $e');
