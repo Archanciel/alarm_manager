@@ -1,4 +1,4 @@
-// lib/services/notification_service.dart
+// lib/services/notification_service.dart - Fixed timezone handling
 import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,6 +20,13 @@ class NotificationService {
       // Initialize timezone data
       tz.initializeTimeZones();
       
+      // Set local timezone - this is crucial!
+      final String timeZoneName = await _getLocalTimeZone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      
+      _logger.i('Timezone initialized: $timeZoneName');
+      _logger.i('Current local time: ${tz.TZDateTime.now(tz.local)}');
+      
       const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
       const initSettings = InitializationSettings(android: androidSettings);
       
@@ -34,6 +41,29 @@ class NotificationService {
       _logger.i('Notification service initialized');
     } catch (e) {
       _logger.e('Error initializing notifications: $e');
+    }
+  }
+
+  Future<String> _getLocalTimeZone() async {
+    try {
+      // Try to get system timezone
+      final DateTime now = DateTime.now();
+      final String offset = now.timeZoneOffset.toString();
+      _logger.i('System timezone offset: $offset');
+      
+      // For Central European Summer Time (CEST) - UTC+2
+      // You can modify this based on your needs
+      if (now.timeZoneOffset.inHours == 2) {
+        return 'Europe/Paris'; // CEST
+      } else if (now.timeZoneOffset.inHours == 1) {
+        return 'Europe/Paris'; // CET
+      }
+      
+      // Default fallback
+      return 'Europe/Paris';
+    } catch (e) {
+      _logger.e('Error getting timezone: $e');
+      return 'Europe/Paris'; // Safe fallback
     }
   }
 
@@ -67,33 +97,47 @@ class NotificationService {
 
   Future<void> scheduleAlarmNotification(AlarmModel alarm) async {
     try {
+      // Convert to timezone-aware datetime
       final scheduledDate = tz.TZDateTime.from(
         alarm.nextAlarmDateTime, 
         tz.local,
       );
-
-      await _notifications.zonedSchedule(
-        alarm.id.hashCode,
-        'Alarm: ${alarm.name}',
-        'Alarm is ringing!',
-        scheduledDate,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'alarm_channel',
-            'Alarms',
-            channelDescription: 'Alarm notifications',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-            fullScreenIntent: true,
-            category: AndroidNotificationCategory.alarm,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
       
-      _logger.i('Scheduled notification for alarm: ${alarm.name} at $scheduledDate');
+      final now = tz.TZDateTime.now(tz.local);
+      
+      _logger.i('Scheduling notification:');
+      _logger.i('  Current time: $now');
+      _logger.i('  Alarm time: ${alarm.nextAlarmDateTime}');
+      _logger.i('  Scheduled TZ time: $scheduledDate');
+      _logger.i('  Time difference: ${scheduledDate.difference(now).inMinutes} minutes');
+      
+      // Only schedule if in the future
+      if (scheduledDate.isAfter(now)) {
+        await _notifications.zonedSchedule(
+          alarm.id.hashCode,
+          'Alarm: ${alarm.name}',
+          'Alarm is ringing!',
+          scheduledDate,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'alarm_channel',
+              'Alarms',
+              channelDescription: 'Alarm notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+              fullScreenIntent: true,
+              category: AndroidNotificationCategory.alarm,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        );
+        
+        _logger.i('Successfully scheduled notification for: ${alarm.name}');
+      } else {
+        _logger.w('Cannot schedule notification in the past: ${alarm.name}');
+      }
     } catch (e) {
       _logger.e('Error scheduling notification: $e');
     }
@@ -148,7 +192,6 @@ class NotificationService {
     
     if (response.actionId == 'stop_alarm') {
       _logger.i('Stop alarm action triggered');
-      // Handle stop alarm action - you can add audio service stop here
     }
   }
 
