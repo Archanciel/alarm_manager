@@ -6,17 +6,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'views/alarm_list_view.dart';
 import 'view_models/alarm_view_model.dart';
-import 'services/alarm_service.dart';
 import 'services/notification_service.dart';
 
 final Logger logger = Logger();
-
-@pragma('vm:entry-point')
-void alarmCallback() {
-  logger.i("Background alarm callback executed");
-  final alarmService = AlarmService();
-  alarmService.checkAndTriggerAlarms();
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
