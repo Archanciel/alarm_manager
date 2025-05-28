@@ -261,16 +261,16 @@ class _AlarmListViewState extends State<AlarmListView> {
                 children: [
                   if (alarm.realAlarmDateTime != null)
                     _buildAlarmDetail(
-                      'Real alarm:',
+                      'Real trig. alarm:',
                       _formatDateTime(alarm.realAlarmDateTime!),
                     ),
                   if (alarm.lastAlarmDateTime != null)
                     _buildAlarmDetail(
-                      'Last alarm:',
+                      'Last set alarm:',
                       _formatDateTime(alarm.lastAlarmDateTime!),
                     ),
                   _buildAlarmDetail(
-                    'Next alarm:',
+                    'Next set alarm:',
                     _formatDateTime(alarm.nextAlarmDateTime),
                     isBold: true,
                   ),
