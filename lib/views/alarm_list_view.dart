@@ -212,7 +212,7 @@ class _AlarmListViewState extends State<AlarmListView> {
                     Icon(Icons.warning, color: Colors.red[700], size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      'OVERDUE by ${timeDiff.inDays}d ${timeDiff.inHours % 24}h ${timeDiff.inMinutes % 60}m',
+                      'OVERDUE by ${timeDiff.abs().inDays}d ${timeDiff.abs().inHours % 24}h ${timeDiff.abs().inMinutes % 60}m',
                       style: TextStyle(
                         color: Colors.red[700],
                         fontWeight: FontWeight.bold,
