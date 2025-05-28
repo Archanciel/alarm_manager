@@ -296,7 +296,7 @@ class AlarmService {
       await _notificationService.showAlarmTriggeredNotification(alarm);
 
       // Calculate next alarm time - FIXED CALCULATION
-      final nextAlarmTime = _calculateNextAlarmTime(
+      final DateTime nextAlarmTime = _calculateNextAlarmTime(
         alarm.nextAlarmDateTime,
         alarm.periodicity,
       );
