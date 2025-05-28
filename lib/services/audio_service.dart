@@ -17,7 +17,6 @@ class AudioService {
       _currentAlarmFile = audioFile;
       
       // Configure audio player settings
-      await _audioPlayer.setReleaseMode(ReleaseMode.release); // Loop the alarm
       await _audioPlayer.setVolume(1.0); // Maximum volume
       
       // Play the custom sound from assets
