@@ -174,7 +174,21 @@ class AlarmService {
     }
   }
 
-  @pragma('vm:entry-point')
+/// This function is called by AndroidAlarmManager from native Android code.
+/// 
+/// What happens without the 'pragma' annotation:
+/// 
+/// Release builds might fail - Functions get removed during optimization.
+/// Background alarms won't work - The callback functions don't exist.
+/// Silent failures - No error messages, alarms just don't trigger.
+/// Works in debug, fails in release - Debug builds are less optimized.
+/// 
+/// Removing these annotations would likely cause alarms to work in debug
+/// mode but fail silently in release builds - which is exactly the kind of
+/// bug that's hard to track down !
+/// It's basically telling Flutter: "Trust me, this function IS used, even
+/// though you can't see how !".
+@pragma('vm:entry-point')
   static void _backgroundAlarmCallback(int id, Map<String, dynamic> params) async {
     final logger = Logger();
     final now = DateTime.now();
@@ -197,6 +211,20 @@ class AlarmService {
     }
   }
 
+  /// This function is called by the periodic background service.
+  /// 
+  /// What happens without the 'pragma' annotation:
+  /// 
+  /// Release builds might fail - Functions get removed during optimization.
+  /// Background alarms won't work - The callback functions don't exist.
+  /// Silent failures - No error messages, alarms just don't trigger.
+  /// Works in debug, fails in release - Debug builds are less optimized.
+  /// 
+  /// Removing these annotations would likely cause alarms to work in debug
+  /// mode but fail silently in release builds - which is exactly the kind of
+  /// bug that's hard to track down !
+  /// It's basically telling Flutter: "Trust me, this function IS used, even
+  /// though you can't see how !".
   @pragma('vm:entry-point')
   static void _debugCheckCallback(int id, Map<String, dynamic> params) async {
     final logger = Logger();
