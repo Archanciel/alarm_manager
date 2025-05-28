@@ -334,13 +334,17 @@ class AlarmService {
     DateTime currentAlarmTime,
     AlarmPeriodicity periodicity,
   ) {
-    // Simply add the periodicity to the current alarm time
-    final nextTime = currentAlarmTime.add(periodicity.duration);
+    final DateTime now = DateTime.now();
+    DateTime nextTime = currentAlarmTime.add(periodicity.duration);
+    int i = 1;
+
+    while (nextTime.isBefore(now)) {
+      nextTime = nextTime.add(periodicity.duration);
+      i++;
+    }
 
     _logger.i('Calculating next alarm:');
-    _logger.i('  Current: $currentAlarmTime');
-    _logger.i('  + Period: ${periodicity.duration}');
-    _logger.i('  = Next: $nextTime');
+    _logger.i('  Current alarm: $currentAlarmTime + $i Period: ${periodicity.duration} = Next alarm: $nextTime');
 
     return nextTime;
   }
@@ -368,7 +372,8 @@ class AlarmService {
     }
   }
 
-  // Manual trigger for testing
+  /// Manual trigger for testing. Called when the user clicks on the 'Force Trigger
+  /// sub-menu. Overdue'
   Future<void> triggerAlarmNow(String alarmId) async {
     try {
       _logger.i('🧪 Manually triggering alarm: $alarmId');
@@ -382,14 +387,6 @@ class AlarmService {
     DateTime baseTime,
     AlarmPeriodicity periodicity,
   ) {
-    final now = DateTime.now();
-    DateTime nextAlarm = baseTime;
-
-    // If the base time is in the past, calculate the next occurrence
-    while (nextAlarm.isBefore(now)) {
-      nextAlarm = nextAlarm.add(periodicity.duration);
-    }
-
-    return nextAlarm;
+    return _calculateNextAlarmTime(baseTime, periodicity);
   }
 }

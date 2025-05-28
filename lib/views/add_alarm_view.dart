@@ -16,8 +16,8 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _daysController = TextEditingController(text: '00');
-  final _hoursController = TextEditingController(text: '05');
-  final _minutesController = TextEditingController(text: '30');
+  final _hoursController = TextEditingController(text: '00');
+  final _minutesController = TextEditingController(text: '00');
   final Logger _logger = Logger();
 
   TimeOfDay _selectedTime = TimeOfDay.now();

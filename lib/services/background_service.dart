@@ -15,9 +15,9 @@ class BackgroundService {
       // Initialize Android Alarm Manager
       await AndroidAlarmManager.initialize();
       
-      // Register periodic task to check alarms every 15 minutes
+      // Register periodic task to check alarms every 5 minutes
       await AndroidAlarmManager.periodic(
-        const Duration(minutes: 15),
+        const Duration(minutes: 5),
         _periodicAlarmId,
         _periodicAlarmCallback,
         exact: false,
