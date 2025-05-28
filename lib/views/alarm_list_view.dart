@@ -1,4 +1,6 @@
 // lib/views/alarm_list_view.dart - Enhanced with debugging
+import 'package:alarm_manager/services/background_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
@@ -65,11 +67,7 @@ class _AlarmListViewState extends State<AlarmListView> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.alarm_off,
-                    size: 64,
-                    color: Colors.white70,
-                  ),
+                  Icon(Icons.alarm_off, size: 64, color: Colors.white70),
                   SizedBox(height: 16),
                   Text(
                     'No alarms yet',
@@ -107,11 +105,15 @@ class _AlarmListViewState extends State<AlarmListView> {
     );
   }
 
-  Widget _buildAlarmCard(BuildContext context, AlarmModel alarm, AlarmViewModel viewModel) {
+  Widget _buildAlarmCard(
+    BuildContext context,
+    AlarmModel alarm,
+    AlarmViewModel viewModel,
+  ) {
     final now = DateTime.now();
     final isPastDue = now.isAfter(alarm.nextAlarmDateTime);
     final timeDiff = alarm.nextAlarmDateTime.difference(now);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 4,
@@ -158,38 +160,39 @@ class _AlarmListViewState extends State<AlarmListView> {
                             break;
                         }
                       },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'test',
-                          child: Row(
-                            children: [
-                              Icon(Icons.play_arrow, color: Colors.green),
-                              SizedBox(width: 8),
-                              Text('Test Now'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete'),
-                            ],
-                          ),
-                        ),
-                      ],
+                      itemBuilder:
+                          (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'test',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.play_arrow, color: Colors.green),
+                                  SizedBox(width: 8),
+                                  Text('Test Now'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete'),
+                                ],
+                              ),
+                            ),
+                          ],
                       child: const Icon(Icons.more_vert),
                     ),
                   ],
@@ -197,7 +200,7 @@ class _AlarmListViewState extends State<AlarmListView> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Time status indicator
             if (isPastDue && alarm.isActive)
               Container(
@@ -245,9 +248,9 @@ class _AlarmListViewState extends State<AlarmListView> {
                   ],
                 ),
               ),
-              
+
             const SizedBox(height: 8),
-            
+
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -256,12 +259,25 @@ class _AlarmListViewState extends State<AlarmListView> {
               ),
               child: Column(
                 children: [
-                  _buildAlarmDetail('Next alarm:', _formatDateTime(alarm.nextAlarmDateTime)),
-                  if (alarm.lastAlarmDateTime != null)
-                    _buildAlarmDetail('Last alarm:', _formatDateTime(alarm.lastAlarmDateTime!)),
                   if (alarm.realAlarmDateTime != null)
-                    _buildAlarmDetail('Real alarm:', _formatDateTime(alarm.realAlarmDateTime!)),
-                  _buildAlarmDetail('Periodicity:', alarm.periodicity.formattedString),
+                    _buildAlarmDetail(
+                      'Real alarm:',
+                      _formatDateTime(alarm.realAlarmDateTime!),
+                    ),
+                  if (alarm.lastAlarmDateTime != null)
+                    _buildAlarmDetail(
+                      'Last alarm:',
+                      _formatDateTime(alarm.lastAlarmDateTime!),
+                    ),
+                  _buildAlarmDetail(
+                    'Next alarm:',
+                    _formatDateTime(alarm.nextAlarmDateTime),
+                    isBold: true,
+                  ),
+                  _buildAlarmDetail(
+                    'Periodicity:',
+                    alarm.periodicity.formattedString,
+                  ),
                   _buildAlarmDetail('Audio file:', alarm.audioFile),
                 ],
               ),
@@ -291,28 +307,18 @@ class _AlarmListViewState extends State<AlarmListView> {
     );
   }
 
-  Widget _buildAlarmDetail(String label, String value) {
+  Widget _buildAlarmDetail(String label, String value, {bool isBold = false}) {
+    TextStyle textStyle = TextStyle(
+      fontWeight: (isBold) ? FontWeight.bold : FontWeight.w500,
+      fontSize: 13,
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
+          SizedBox(width: 100, child: Text(label, style: textStyle)),
+          Expanded(child: Text(value, style: textStyle)),
         ],
       ),
     );
@@ -323,10 +329,7 @@ class _AlarmListViewState extends State<AlarmListView> {
   }
 
   void _showAddAlarmDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const AddAlarmDialog(),
-    );
+    showDialog(context: context, builder: (context) => const AddAlarmDialog());
   }
 
   void _showEditAlarmDialog(BuildContext context, AlarmModel alarm) {
@@ -341,7 +344,7 @@ class _AlarmListViewState extends State<AlarmListView> {
       _logger.i('Testing alarm: ${alarm.name}');
       final alarmService = AlarmService();
       await alarmService.triggerAlarmNow(alarm.id);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Testing alarm "${alarm.name}"'),
@@ -359,99 +362,182 @@ class _AlarmListViewState extends State<AlarmListView> {
     }
   }
 
+  void _showDeleteConfirmation(
+    BuildContext context,
+    AlarmModel alarm,
+    AlarmViewModel viewModel,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Alarm'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Are you sure you want to delete this alarm?'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Name: ${alarm.name}',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text('Next: ${_formatDateTime(alarm.nextAlarmDateTime)}'),
+                      Text('Periodicity: ${alarm.periodicity.formattedString}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  viewModel.deleteAlarm(alarm.id);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Alarm "${alarm.name}" deleted'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+  // Add this method to your AlarmListView class:
+
   void _showDebugDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Tools'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text('Check All Alarms'),
-              subtitle: const Text('Manually check if any alarms should trigger'),
-              onTap: () async {
-                Navigator.of(context).pop();
-                final alarmService = AlarmService();
-                await alarmService.checkAndTriggerAlarms();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Alarm check completed - check logs'),
-                    backgroundColor: Colors.blue,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Debug Tools'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('Check All Alarms'),
+                  subtitle: const Text(
+                    'Manually check if any alarms should trigger',
                   ),
-                );
-              },
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final alarmService = AlarmService();
+                    await alarmService.checkAndTriggerAlarms();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Alarm check completed - check logs'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.timer),
+                  title: const Text('Force Trigger Overdue'),
+                  subtitle: const Text('Trigger all overdue alarms now'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _forceCheckOverdueAlarms();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.refresh),
+                  title: const Text('Restart Background Service'),
+                  subtitle: const Text('Restart the background alarm checker'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    try {
+                      final backgroundService = Provider.of<BackgroundService>(
+                        context,
+                        listen: false,
+                      );
+                      await backgroundService.restartPeriodicCheck();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Background service restarted'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error restarting service: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.info),
+                  title: const Text('Current Time'),
+                  subtitle: Text(DateTime.now().toString()),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('Current Time'),
-              subtitle: Text(DateTime.now().toString()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, AlarmModel alarm, AlarmViewModel viewModel) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Alarm'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to delete this alarm?'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Name: ${alarm.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  Text('Next: ${_formatDateTime(alarm.nextAlarmDateTime)}'),
-                  Text('Periodicity: ${alarm.periodicity.formattedString}'),
-                ],
-              ),
-            ),
-          ],
+  Future<void> _forceCheckOverdueAlarms() async {
+    try {
+      _logger.i('🔍 Force checking overdue alarms');
+      final viewModel = context.read<AlarmViewModel>();
+      final alarmService = AlarmService();
+
+      // Get current alarms
+      final alarms = viewModel.alarms;
+      final now = DateTime.now();
+
+      int triggeredCount = 0;
+
+      for (final alarm in alarms) {
+        if (alarm.isActive && now.isAfter(alarm.nextAlarmDateTime)) {
+          _logger.i('⏰ Force triggering overdue alarm: ${alarm.name}');
+          await alarmService.triggerAlarmNow(alarm.id);
+          triggeredCount++;
+        }
+      }
+
+      // Reload alarms to show updates
+      await viewModel.loadAlarms();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Triggered $triggeredCount overdue alarms'),
+          backgroundColor: triggeredCount > 0 ? Colors.green : Colors.orange,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              viewModel.deleteAlarm(alarm.id);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Alarm "${alarm.name}" deleted'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+      );
+    } catch (e) {
+      _logger.e('Error force checking alarms: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 }

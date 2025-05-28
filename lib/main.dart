@@ -1,4 +1,4 @@
-// lib/main.dart
+// lib/main.dart - Updated with BackgroundService
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
@@ -7,6 +7,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'views/alarm_list_view.dart';
 import 'view_models/alarm_view_model.dart';
 import 'services/notification_service.dart';
+import 'services/background_service.dart';
 
 final Logger logger = Logger();
 
@@ -19,10 +20,14 @@ void main() async {
   // Initialize notification service
   await NotificationService().initialize();
   
+  // Initialize background service
+  final backgroundService = BackgroundService();
+  await backgroundService.initialize();
+  
   // Request permissions
   await _requestPermissions();
   
-  runApp(const AlarmManagerApp());
+  runApp(AlarmManagerApp(backgroundService: backgroundService));
 }
 
 Future<void> _requestPermissions() async {
@@ -33,7 +38,9 @@ Future<void> _requestPermissions() async {
 }
 
 class AlarmManagerApp extends StatelessWidget {
-  const AlarmManagerApp({super.key});
+  final BackgroundService backgroundService;
+  
+  const AlarmManagerApp({Key? key, required this.backgroundService}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +49,7 @@ class AlarmManagerApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AlarmViewModel(),
         ),
+        Provider<BackgroundService>.value(value: backgroundService),
       ],
       child: MaterialApp(
         title: 'Alarm Manager',

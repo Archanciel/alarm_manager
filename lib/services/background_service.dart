@@ -1,11 +1,14 @@
-// lib/services/background_service.dart
+// lib/services/background_service.dart - Enhanced with foreground checking
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:logger/logger.dart';
+import 'dart:async';
 import 'alarm_service.dart';
 
 class BackgroundService {
   static const int _periodicAlarmId = 999999;
+  static const int _foregroundCheckId = 888888;
   final Logger _logger = Logger();
+  Timer? _foregroundTimer;
 
   Future<void> initialize() async {
     try {
@@ -17,21 +20,41 @@ class BackgroundService {
         const Duration(minutes: 15),
         _periodicAlarmId,
         _periodicAlarmCallback,
-        exact: false, // Allow some flexibility for battery optimization
+        exact: false,
         wakeup: true,
         rescheduleOnReboot: true,
       );
       
-      _logger.i('Background service initialized with periodic checks every 15 minutes');
+      // Start foreground timer for immediate checking (every 30 seconds)
+      _startForegroundTimer();
+      
+      _logger.i('Background service initialized with both background and foreground checking');
     } catch (e) {
       _logger.e('Error initializing background service: $e');
     }
   }
 
+  void _startForegroundTimer() {
+    _foregroundTimer?.cancel();
+    
+    _foregroundTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      _logger.i('🔄 Foreground timer check - ${DateTime.now()}');
+      
+      try {
+        final alarmService = AlarmService();
+        await alarmService.checkAndTriggerAlarms();
+      } catch (e) {
+        _logger.e('Error in foreground timer: $e');
+      }
+    });
+    
+    _logger.i('Started foreground timer - checking every 30 seconds');
+  }
+
   @pragma('vm:entry-point')
   static void _periodicAlarmCallback(int id, Map<String, dynamic>? params) async {
     final logger = Logger();
-    logger.i("Periodic background task executed with id: $id");
+    logger.i("📱 Periodic background task executed with id: $id at ${DateTime.now()}");
     
     try {
       final alarmService = AlarmService();
@@ -44,11 +67,9 @@ class BackgroundService {
 
   Future<void> scheduleOneTimeCheck({Duration delay = const Duration(minutes: 1)}) async {
     try {
-      const int oneTimeAlarmId = 888888;
-      
       await AndroidAlarmManager.oneShot(
         delay,
-        oneTimeAlarmId,
+        _foregroundCheckId,
         _oneTimeAlarmCallback,
         exact: true,
         wakeup: true,
@@ -63,7 +84,7 @@ class BackgroundService {
   @pragma('vm:entry-point')
   static void _oneTimeAlarmCallback(int id, Map<String, dynamic>? params) async {
     final logger = Logger();
-    logger.i("One-time background task executed with id: $id");
+    logger.i("⏰ One-time background task executed with id: $id at ${DateTime.now()}");
     
     try {
       final alarmService = AlarmService();
@@ -77,6 +98,8 @@ class BackgroundService {
   Future<void> cancelAllTasks() async {
     try {
       await AndroidAlarmManager.cancel(_periodicAlarmId);
+      await AndroidAlarmManager.cancel(_foregroundCheckId);
+      _foregroundTimer?.cancel();
       _logger.i('All background tasks cancelled');
     } catch (e) {
       _logger.e('Error cancelling background tasks: $e');
@@ -98,17 +121,22 @@ class BackgroundService {
         rescheduleOnReboot: true,
       );
       
+      // Restart foreground timer
+      _startForegroundTimer();
+      
       _logger.i('Periodic background check restarted');
     } catch (e) {
       _logger.e('Error restarting periodic check: $e');
     }
   }
 
+  void dispose() {
+    _foregroundTimer?.cancel();
+  }
+
   /// Check if the background service is properly initialized
   Future<bool> isInitialized() async {
     try {
-      // We can't directly check if AndroidAlarmManager is initialized,
-      // but we can try to schedule a test alarm and then cancel it
       const int testAlarmId = 777777;
       
       await AndroidAlarmManager.oneShot(
