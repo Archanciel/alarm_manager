@@ -111,6 +111,7 @@ class AudioService {
         await _testPlayer!.stop();
         _logger.i('⏹️ Stopped test sound');
       }
+      _onTestComplete = null;
       _isTestPlaying = false;
       _testPlayer?.dispose();
       _testPlayer = null;
@@ -177,5 +178,6 @@ class AudioService {
     _isTestPlaying = false;
     _currentAlarmFile = null;
     _testPlayer = null;
+    _onTestComplete = null;
   }
 }
