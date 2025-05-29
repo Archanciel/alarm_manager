@@ -1,4 +1,4 @@
-// lib/views/add_alarm_view.dart - Avec bouton test audio
+// lib/views/add_alarm_view.dart - With dynamic audio list and enhanced test
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
@@ -25,16 +25,44 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   TimeOfDay _selectedTime = TimeOfDay.now();
   DateTime _selectedDate = DateTime.now();
-  String _selectedAudioFile = 'pianist_s8 soft.mp3';
+  String _selectedAudioFile = '';
+  List<String> _audioFiles = [];
+  bool _isLoadingAudio = true;
 
-  final List<String> _audioFiles = [
-    'arroser la plante softer.mp3',
-    'arroser la plante soft.mp3',
-    'arroser la plante normal.mp3',
-    'pianist_s8 softer.mp3',
-    'pianist_s8 soft.mp3',
-    'pianist_s8 normal.mp3',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadAudioFiles();
+  }
+
+  Future<void> _loadAudioFiles() async {
+    try {
+      _logger.i('📂 Loading audio files from assets/sounds directory...');
+      final files = await AudioService.getAvailableAudioFiles();
+      
+      setState(() {
+        _audioFiles = files;
+        _selectedAudioFile = files.isNotEmpty ? files.first : '';
+        _isLoadingAudio = false;
+      });
+      
+      _logger.i('✅ Loaded ${files.length} audio files');
+    } catch (e) {
+      _logger.e('❌ Error loading audio files: $e');
+      setState(() {
+        _audioFiles = [
+          'arroser la plante softer.mp3',
+          'arroser la plante soft.mp3',
+          'arroser la plante normal.mp3',
+          'pianist_s8 softer.mp3',
+          'pianist_s8 soft.mp3',
+          'pianist_s8 normal.mp3',
+        ];
+        _selectedAudioFile = _audioFiles.first;
+        _isLoadingAudio = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,53 +153,112 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Audio selection with test button
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedAudioFile,
-                      decoration: const InputDecoration(
-                        labelText: 'Audio File',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _audioFiles.map((file) {
-                        return DropdownMenuItem(
-                          value: file,
-                          child: Text(
-                            file,
-                            style: const TextStyle(fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
+              
+              // Audio selection section
+              if (_isLoadingAudio)
+                const Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 16),
+                    Text('Loading audio files...'),
+                  ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.audiotrack, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Audio Files (${_audioFiles.length} found)',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedAudioFile = value!;
-                        });
-                      },
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _testAudio(),
-                    icon: const Icon(Icons.play_arrow, size: 20),
-                    label: const Text(''),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedAudioFile.isEmpty ? null : _selectedAudioFile,
+                            decoration: const InputDecoration(
+                              labelText: 'Select Audio File',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _audioFiles.map((file) {
+                              return DropdownMenuItem(
+                                value: file,
+                                child: Tooltip(
+                                  message: file,
+                                  child: Text(
+                                    file,
+                                    style: const TextStyle(fontSize: 12),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedAudioFile = value;
+                                });
+                              }
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select an audio file';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _selectedAudioFile.isEmpty ? null : _testAudio,
+                              icon: Icon(
+                                _audioService.isTestPlaying ? Icons.stop : Icons.play_arrow,
+                                size: 18,
+                              ),
+                              label: Text(''),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _audioService.isTestPlaying ? Colors.red : Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              '100% Vol',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            _audioService.stopTestSound(); // Stop any playing test
+            Navigator.of(context).pop();
+          },
           child: const Text('Cancel'),
         ),
         ElevatedButton(
@@ -184,15 +271,25 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   void _testAudio() async {
     try {
-      _logger.i('🧪 Testing audio: $_selectedAudioFile');
-      await _audioService.testSound(_selectedAudioFile);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Testing: $_selectedAudioFile'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (_audioService.isTestPlaying) {
+        // Stop current test
+        await _audioService.stopTestSound();
+        _logger.i('⏹️ Stopped audio test');
+        setState(() {}); // Refresh button state
+      } else {
+        // Start new test
+        _logger.i('🧪 Testing audio at 100% volume: $_selectedAudioFile');
+        await _audioService.testSound(_selectedAudioFile);
+        setState(() {}); // Refresh button state
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Testing: $_selectedAudioFile (100% volume, full duration)'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       _logger.e('Error testing audio: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -263,6 +360,9 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     }
 
     try {
+      // Stop any test audio before saving
+      _audioService.stopTestSound();
+      
       final periodicity = AlarmPeriodicity(
         days: int.parse(_daysController.text),
         hours: int.parse(_hoursController.text),
@@ -293,7 +393,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
       context.read<AlarmViewModel>().addAlarm(alarm);
       Navigator.of(context).pop();
       
-      _logger.i('New alarm created: ${alarm.name}');
+      _logger.i('New alarm created: ${alarm.name} with audio: $_selectedAudioFile');
     } catch (e) {
       _logger.e('Error creating alarm: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -311,6 +411,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     _daysController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _audioService.stopTestSound(); // Stop any playing test
     _audioService.dispose();
     super.dispose();
   }

@@ -1,12 +1,18 @@
-// lib/services/audio_service.dart - Enhanced with better control
+// lib/services/audio_service.dart - Enhanced with 100% volume and full duration test
 import 'package:audioplayers/audioplayers.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
 class AudioService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Logger _logger = Logger();
   bool _isPlaying = false;
   String? _currentAlarmFile;
+  
+  // Test player management
+  AudioPlayer? _testPlayer;
+  bool _isTestPlaying = false;
 
   Future<void> playAlarm(String audioFile) async {
     try {
@@ -75,34 +81,107 @@ class AudioService {
     }
   }
 
-  bool get isPlaying => _isPlaying;
-  String? get currentAlarmFile => _currentAlarmFile;
-
   Future<void> testSound(String audioFile) async {
     try {
-      _logger.i('🧪 Testing sound: $audioFile');
+      _logger.i('🧪 Testing sound at 100% volume: $audioFile');
       
-      // Create a separate player for testing to avoid interfering with active alarms
-      final testPlayer = AudioPlayer();
+      // Stop any existing test
+      await stopTestSound();
       
-      await testPlayer.setVolume(0.7); // Slightly lower volume for testing
-      await testPlayer.play(AssetSource('sounds/$audioFile'));
+      // Create a new test player
+      _testPlayer = AudioPlayer();
       
-      // Auto-stop test sound after 3 seconds
-      Future.delayed(const Duration(seconds: 3), () {
-        testPlayer.stop();
-        testPlayer.dispose();
-        _logger.i('✅ Test sound completed: $audioFile');
+      await _testPlayer!.setVolume(1.0); // 100% volume for testing
+      await _testPlayer!.play(AssetSource('sounds/$audioFile'));
+      _isTestPlaying = true;
+      
+      _logger.i('✅ Test sound started (full duration): $audioFile');
+      
+      // Listen for completion
+      _testPlayer!.onPlayerComplete.listen((_) {
+        _logger.i('🎵 Test sound completed naturally: $audioFile');
+        _isTestPlaying = false;
+        _testPlayer?.dispose();
+        _testPlayer = null;
       });
       
     } catch (e) {
       _logger.e('❌ Error testing sound: $e');
+      _isTestPlaying = false;
+      _testPlayer?.dispose();
+      _testPlayer = null;
     }
   }
 
+  Future<void> stopTestSound() async {
+    try {
+      if (_isTestPlaying && _testPlayer != null) {
+        await _testPlayer!.stop();
+        _logger.i('⏹️ Stopped test sound');
+      }
+      _isTestPlaying = false;
+      _testPlayer?.dispose();
+      _testPlayer = null;
+    } catch (e) {
+      _logger.e('Error stopping test sound: $e');
+    }
+  }
+
+  /// Get list of available audio files from assets/sounds directory
+  static Future<List<String>> getAvailableAudioFiles() async {
+    final Logger logger = Logger();
+    
+    try {
+      // Get the manifest which contains all assets
+      final manifestContent = await rootBundle.loadString('AssetManifest.json');
+      final Map<String, dynamic> manifestMap = 
+          jsonDecode(manifestContent) as Map<String, dynamic>;
+      
+      // Filter for sounds directory
+      final audioFiles = manifestMap.keys
+          .where((String key) => key.startsWith('assets/sounds/'))
+          .map((String key) => key.replaceFirst('assets/sounds/', ''))
+          .where((String fileName) => 
+              fileName.endsWith('.mp3') || 
+              fileName.endsWith('.wav') || 
+              fileName.endsWith('.m4a') ||
+              fileName.endsWith('.aac'))
+          .toList();
+      
+      audioFiles.sort(); // Sort alphabetically
+      
+      logger.i('🎵 Found ${audioFiles.length} audio files:');
+      for (final file in audioFiles) {
+        logger.i('  - $file');
+      }
+      
+      return audioFiles;
+      
+    } catch (e) {
+      logger.e('❌ Error loading audio files from assets: $e');
+      
+      // Fallback to your known files
+      return [
+        'arroser la plante softer.mp3',
+        'arroser la plante soft.mp3',
+        'arroser la plante normal.mp3',
+        'pianist_s8 softer.mp3',
+        'pianist_s8 soft.mp3',
+        'pianist_s8 normal.mp3',
+      ];
+    }
+  }
+
+  bool get isPlaying => _isPlaying;
+  bool get isTestPlaying => _isTestPlaying;
+  String? get currentAlarmFile => _currentAlarmFile;
+
   void dispose() {
     _audioPlayer.dispose();
+    _testPlayer?.dispose();
     _isPlaying = false;
+    _isTestPlaying = false;
     _currentAlarmFile = null;
+    _testPlayer = null;
   }
 }

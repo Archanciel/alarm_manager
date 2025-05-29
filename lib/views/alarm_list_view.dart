@@ -6,7 +6,7 @@ import 'dart:async';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
-import 'add_alarm_view.dart';
+import 'add_alarm_dialog.dart';
 import 'edit_alarm_dialog.dart';
 
 class AlarmListView extends StatefulWidget {
