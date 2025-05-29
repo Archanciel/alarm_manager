@@ -1,15 +1,16 @@
 // lib/services/audio_service.dart - Enhanced with 100% volume and full duration test
+import 'dart:convert';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 
 class AudioService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Logger _logger = Logger();
   bool _isPlaying = false;
   String? _currentAlarmFile;
-  
+
   // Test player management
   AudioPlayer? _testPlayer;
   bool _isTestPlaying = false;
@@ -18,19 +19,19 @@ class AudioService {
     try {
       // Stop any currently playing alarm
       await stopAlarm();
-      
+
       _logger.i('🎵 Playing CUSTOM alarm sound: $audioFile');
       _currentAlarmFile = audioFile;
-      
+
       // Configure audio player settings
       await _audioPlayer.setVolume(1.0); // Maximum volume
-      
+
       // Play the custom sound from assets
       await _audioPlayer.play(AssetSource('sounds/$audioFile'));
       _isPlaying = true;
-      
+
       _logger.i('✅ Custom alarm sound started: $audioFile');
-      
+
       // Optional: Auto-stop after 5 minutes to prevent infinite loop
       Future.delayed(const Duration(minutes: 5), () {
         if (_isPlaying && _currentAlarmFile == audioFile) {
@@ -38,7 +39,6 @@ class AudioService {
           stopAlarm();
         }
       });
-      
     } catch (e) {
       _logger.e('❌ Error playing custom alarm sound: $e');
       _isPlaying = false;
@@ -81,36 +81,24 @@ class AudioService {
     }
   }
 
-  Future<void> testSound(String audioFile) async {
-    try {
-      _logger.i('🧪 Testing sound at 100% volume: $audioFile');
-      
-      // Stop any existing test
-      await stopTestSound();
-      
-      // Create a new test player
-      _testPlayer = AudioPlayer();
-      
-      await _testPlayer!.setVolume(1.0); // 100% volume for testing
-      await _testPlayer!.play(AssetSource('sounds/$audioFile'));
-      _isTestPlaying = true;
-      
-      _logger.i('✅ Test sound started (full duration): $audioFile');
-      
-      // Listen for completion
-      _testPlayer!.onPlayerComplete.listen((_) {
-        _logger.i('🎵 Test sound completed naturally: $audioFile');
-        _isTestPlaying = false;
-        _testPlayer?.dispose();
-        _testPlayer = null;
-      });
-      
-    } catch (e) {
-      _logger.e('❌ Error testing sound: $e');
+  // Callback for test completion
+  Function()? _onTestComplete;
+
+  Future<void> testSound(String audioFile, {Function()? onComplete}) async {
+    // Store the completion callback
+    _onTestComplete = onComplete;
+
+    _testPlayer = AudioPlayer();
+
+    // Listen for completion
+    _testPlayer!.onPlayerComplete.listen((_) {
       _isTestPlaying = false;
-      _testPlayer?.dispose();
-      _testPlayer = null;
-    }
+      // Notify the UI that test completed
+      if (_onTestComplete != null) {
+        _onTestComplete!();
+        _onTestComplete = null;
+      }
+    });
   }
 
   Future<void> stopTestSound() async {
@@ -130,36 +118,38 @@ class AudioService {
   /// Get list of available audio files from assets/sounds directory
   static Future<List<String>> getAvailableAudioFiles() async {
     final Logger logger = Logger();
-    
+
     try {
       // Get the manifest which contains all assets
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap = 
+      final Map<String, dynamic> manifestMap =
           jsonDecode(manifestContent) as Map<String, dynamic>;
-      
+
       // Filter for sounds directory
-      final audioFiles = manifestMap.keys
-          .where((String key) => key.startsWith('assets/sounds/'))
-          .map((String key) => key.replaceFirst('assets/sounds/', ''))
-          .where((String fileName) => 
-              fileName.endsWith('.mp3') || 
-              fileName.endsWith('.wav') || 
-              fileName.endsWith('.m4a') ||
-              fileName.endsWith('.aac'))
-          .toList();
-      
+      final audioFiles =
+          manifestMap.keys
+              .where((String key) => key.startsWith('assets/sounds/'))
+              .map((String key) => key.replaceFirst('assets/sounds/', ''))
+              .where(
+                (String fileName) =>
+                    fileName.endsWith('.mp3') ||
+                    fileName.endsWith('.wav') ||
+                    fileName.endsWith('.m4a') ||
+                    fileName.endsWith('.aac'),
+              )
+              .toList();
+
       audioFiles.sort(); // Sort alphabetically
-      
+
       logger.i('🎵 Found ${audioFiles.length} audio files:');
       for (final file in audioFiles) {
         logger.i('  - $file');
       }
-      
+
       return audioFiles;
-      
     } catch (e) {
       logger.e('❌ Error loading audio files from assets: $e');
-      
+
       // Fallback to your known files
       return [
         'arroser la plante softer.mp3',
@@ -185,3 +175,4 @@ class AudioService {
     _testPlayer = null;
   }
 }
+
