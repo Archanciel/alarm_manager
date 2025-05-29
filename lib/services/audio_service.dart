@@ -1,4 +1,4 @@
-// lib/services/audio_service.dart - Enhanced with Documents directory support
+// lib/services/audio_service.dart - Simplified with direct state management
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
@@ -23,7 +23,6 @@ class AudioService {
   final StreamController<bool> _testStateController = StreamController<bool>.broadcast();
   Stream<bool> get testStateStream => _testStateController.stream;
 
-  // Documents directory path
   static const String _alarmManagerDirName = 'alarm_manager';
   String? _documentsAlarmPath;
 
@@ -76,7 +75,7 @@ class AudioService {
       _logger.i('✅ Documents directory setup complete: $_documentsAlarmPath');
     } catch (e) {
       _logger.e('❌ Error setting up Documents directory: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -175,18 +174,17 @@ class AudioService {
       // Stop any currently playing alarm
       await stopAlarm();
 
-      _logger.i('🎵 Playing CUSTOM alarm sound from Documents: $audioFile');
+      _logger.i('🎵 Playing CUSTOM alarm sound: $audioFile');
       _currentAlarmFile = audioFile;
 
       // Configure audio player settings
       await _audioPlayer.setVolume(1.0); // Maximum volume
 
-      // Play from Documents directory
-      final String filePath = '$_documentsAlarmPath/$audioFile';
-      await _audioPlayer.play(DeviceFileSource(filePath));
+      // Play the custom sound from assets
+      await _audioPlayer.play(AssetSource('sounds/$audioFile'));
       _isPlaying = true;
 
-      _logger.i('✅ Custom alarm sound started from Documents: $audioFile');
+      _logger.i('✅ Custom alarm sound started: $audioFile');
 
       // Optional: Auto-stop after 5 minutes to prevent infinite loop
       Future.delayed(const Duration(minutes: 5), () {
@@ -239,7 +237,7 @@ class AudioService {
 
   Future<void> testSound(String audioFile) async {
     try {
-      _logger.i('🧪 Testing sound at 100% volume from Documents: $audioFile');
+      _logger.i('🧪 Testing sound at 100% volume: $audioFile');
       
       // Stop any existing test
       await stopTestSound();
@@ -247,16 +245,15 @@ class AudioService {
       // Create a new test player
       _testPlayer = AudioPlayer();
 
-      // Configure and play from Documents directory
+      // Configure and play
       await _testPlayer!.setVolume(1.0); // 100% volume for testing
-      final String filePath = '$_documentsAlarmPath/$audioFile';
-      await _testPlayer!.play(DeviceFileSource(filePath));
+      await _testPlayer!.play(AssetSource('sounds/$audioFile'));
       _isTestPlaying = true;
       
       // Notify UI of state change
       _testStateController.add(_isTestPlaying);
       
-      _logger.i('✅ Test sound started from Documents (full duration): $audioFile');
+      _logger.i('✅ Test sound started (full duration): $audioFile');
       _logger.i('🎮 Test playing state: $_isTestPlaying');
 
       // Listen for completion
@@ -355,44 +352,6 @@ class AudioService {
         'pianist_s8 soft.mp3',
         'pianist_s8 normal.mp3',
       ];
-    }
-  }
-
-  /// Refresh available audio files (useful after user adds new files)
-  Future<List<String>> refreshAudioFiles() async {
-    _logger.i('🔄 Refreshing audio files from Documents directory...');
-    return await getAvailableAudioFiles();
-  }
-
-  /// Get the Documents/alarm_manager directory path
-  String? get documentsAlarmPath => _documentsAlarmPath;
-
-  /// Check if a specific audio file exists in Documents directory
-  Future<bool> audioFileExists(String fileName) async {
-    if (_documentsAlarmPath == null) return false;
-    
-    final File audioFile = File('$_documentsAlarmPath/$fileName');
-    return await audioFile.exists();
-  }
-
-  /// Get file info for an audio file
-  Future<Map<String, dynamic>?> getAudioFileInfo(String fileName) async {
-    try {
-      if (_documentsAlarmPath == null) return null;
-      
-      final File audioFile = File('$_documentsAlarmPath/$fileName');
-      if (!await audioFile.exists()) return null;
-      
-      final FileStat stat = await audioFile.stat();
-      return {
-        'name': fileName,
-        'path': audioFile.path,
-        'size': stat.size,
-        'modified': stat.modified,
-      };
-    } catch (e) {
-      _logger.e('Error getting audio file info: $e');
-      return null;
     }
   }
 
