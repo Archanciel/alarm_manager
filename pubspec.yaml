@@ -43,6 +43,7 @@ dependencies:
   permission_handler: ^12.0.0+1
   timezone: ^0.10.1
   android_alarm_manager_plus: ^4.0.7
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
