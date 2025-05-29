@@ -85,19 +85,23 @@ class AudioService {
   Function()? _onTestComplete;
 
   Future<void> testSound(String audioFile, {Function()? onComplete}) async {
+    // Stop any existing test
+    await stopTestSound();
+
     // Store the completion callback
     _onTestComplete = onComplete;
 
+    // CREATE a new test player (this was missing!)
     _testPlayer = AudioPlayer();
+
+    // Configure and play
+    await _testPlayer!.setVolume(1.0);
+    await _testPlayer!.play(AssetSource('sounds/$audioFile'));
+    _isTestPlaying = true;
 
     // Listen for completion
     _testPlayer!.onPlayerComplete.listen((_) {
-      _isTestPlaying = false;
-      // Notify the UI that test completed
-      if (_onTestComplete != null) {
-        _onTestComplete!();
-        _onTestComplete = null;
-      }
+      // Handle completion and notify UI
     });
   }
 
@@ -175,4 +179,3 @@ class AudioService {
     _testPlayer = null;
   }
 }
-
