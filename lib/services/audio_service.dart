@@ -1,6 +1,6 @@
-// lib/services/audio_service.dart - Enhanced with 100% volume and full duration test
+// lib/services/audio_service.dart - Simplified with direct state management
 import 'dart:convert';
-
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +11,14 @@ class AudioService {
   bool _isPlaying = false;
   String? _currentAlarmFile;
 
-  // Test player management
+  // Test player management with stream controller for state changes
   AudioPlayer? _testPlayer;
   bool _isTestPlaying = false;
+  StreamSubscription<void>? _testPlayerSubscription;
+  
+  // Stream controller to notify UI of test state changes
+  final StreamController<bool> _testStateController = StreamController<bool>.broadcast();
+  Stream<bool> get testStateStream => _testStateController.stream;
 
   Future<void> playAlarm(String audioFile) async {
     try {
@@ -81,42 +86,72 @@ class AudioService {
     }
   }
 
-  // Callback for test completion
-  Function()? _onTestComplete;
+  Future<void> testSound(String audioFile) async {
+    try {
+      _logger.i('🧪 Testing sound at 100% volume: $audioFile');
+      
+      // Stop any existing test
+      await stopTestSound();
 
-  Future<void> testSound(String audioFile, {Function()? onComplete}) async {
-    // Stop any existing test
-    await stopTestSound();
+      // Create a new test player
+      _testPlayer = AudioPlayer();
 
-    // Store the completion callback
-    _onTestComplete = onComplete;
+      // Configure and play
+      await _testPlayer!.setVolume(1.0); // 100% volume for testing
+      await _testPlayer!.play(AssetSource('sounds/$audioFile'));
+      _isTestPlaying = true;
+      
+      // Notify UI of state change
+      _testStateController.add(_isTestPlaying);
+      
+      _logger.i('✅ Test sound started (full duration): $audioFile');
+      _logger.i('🎮 Test playing state: $_isTestPlaying');
 
-    // CREATE a new test player (this was missing!)
-    _testPlayer = AudioPlayer();
+      // Listen for completion
+      _testPlayerSubscription = _testPlayer!.onPlayerComplete.listen((_) {
+        _logger.i('🎵 Test sound completed naturally: $audioFile');
+        _handleTestCompletion();
+      });
+      
+      // Listen for player state changes
+      _testPlayer!.onPlayerStateChanged.listen((PlayerState state) {
+        _logger.i('🎵 Test player state changed: $state');
+      });
+      
+    } catch (e) {
+      _logger.e('❌ Error testing sound: $e');
+      _handleTestCompletion();
+    }
+  }
 
-    // Configure and play
-    await _testPlayer!.setVolume(1.0);
-    await _testPlayer!.play(AssetSource('sounds/$audioFile'));
-    _isTestPlaying = true;
-
-    // Listen for completion
-    _testPlayer!.onPlayerComplete.listen((_) {
-      // Handle completion and notify UI
-    });
+  void _handleTestCompletion() {
+    _logger.i('🧹 Handling test completion...');
+    _logger.i('  - Current state: isTestPlaying=$_isTestPlaying');
+    
+    _isTestPlaying = false;
+    _testPlayerSubscription?.cancel();
+    _testPlayerSubscription = null;
+    _testPlayer?.dispose();
+    _testPlayer = null;
+    
+    // Notify UI of state change
+    _testStateController.add(_isTestPlaying);
+    
+    _logger.i('🔔 Notified UI of test completion');
+    _logger.i('🏁 Test completion handled. Final state: isTestPlaying=$_isTestPlaying');
   }
 
   Future<void> stopTestSound() async {
     try {
+      _logger.i('⏹️ Stopping test sound manually...');
       if (_isTestPlaying && _testPlayer != null) {
         await _testPlayer!.stop();
-        _logger.i('⏹️ Stopped test sound');
+        _logger.i('⏹️ Test sound stopped manually');
       }
-      _onTestComplete = null;
-      _isTestPlaying = false;
-      _testPlayer?.dispose();
-      _testPlayer = null;
+      _handleTestCompletion();
     } catch (e) {
       _logger.e('Error stopping test sound: $e');
+      _handleTestCompletion();
     }
   }
 
@@ -131,18 +166,15 @@ class AudioService {
           jsonDecode(manifestContent) as Map<String, dynamic>;
 
       // Filter for sounds directory
-      final audioFiles =
-          manifestMap.keys
-              .where((String key) => key.startsWith('assets/sounds/'))
-              .map((String key) => key.replaceFirst('assets/sounds/', ''))
-              .where(
-                (String fileName) =>
-                    fileName.endsWith('.mp3') ||
-                    fileName.endsWith('.wav') ||
-                    fileName.endsWith('.m4a') ||
-                    fileName.endsWith('.aac'),
-              )
-              .toList();
+      final audioFiles = manifestMap.keys
+          .where((String key) => key.startsWith('assets/sounds/'))
+          .map((String key) => key.replaceFirst('assets/sounds/', ''))
+          .where((String fileName) => 
+              fileName.endsWith('.mp3') ||
+              fileName.endsWith('.wav') ||
+              fileName.endsWith('.m4a') ||
+              fileName.endsWith('.aac'))
+          .toList();
 
       audioFiles.sort(); // Sort alphabetically
 
@@ -172,12 +204,16 @@ class AudioService {
   String? get currentAlarmFile => _currentAlarmFile;
 
   void dispose() {
+    _logger.i('🧹 Disposing AudioService...');
     _audioPlayer.dispose();
+    _testPlayerSubscription?.cancel();
     _testPlayer?.dispose();
+    _testStateController.close();
     _isPlaying = false;
     _isTestPlaying = false;
     _currentAlarmFile = null;
     _testPlayer = null;
-    _onTestComplete = null;
+    _testPlayerSubscription = null;
+    _logger.i('✅ AudioService disposed');
   }
 }

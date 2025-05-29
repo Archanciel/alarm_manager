@@ -1,7 +1,8 @@
-// lib/views/add_alarm_view.dart - With dynamic audio list and enhanced test
+// lib/views/add_alarm_dialog.dart - Stream-based audio state management
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
+import 'dart:async';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
@@ -28,11 +29,23 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
   String _selectedAudioFile = '';
   List<String> _audioFiles = [];
   bool _isLoadingAudio = true;
+  bool _isTestPlaying = false;
+  StreamSubscription<bool>? _testStateSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadAudioFiles();
+    
+    // Listen to test state changes
+    _testStateSubscription = _audioService.testStateStream.listen((isPlaying) {
+      _logger.i('🔄 Test state changed: $isPlaying');
+      if (mounted) {
+        setState(() {
+          _isTestPlaying = isPlaying;
+        });
+      }
+    });
   }
 
   Future<void> _loadAudioFiles() async {
@@ -225,12 +238,12 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                             ElevatedButton.icon(
                               onPressed: _selectedAudioFile.isEmpty ? null : _testAudio,
                               icon: Icon(
-                                _audioService.isTestPlaying ? Icons.stop : Icons.play_arrow,
+                                _isTestPlaying ? Icons.stop : Icons.play_arrow,
                                 size: 18,
                               ),
-                              label: Text(''),
+                              label: const Text(''),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _audioService.isTestPlaying ? Colors.red : Colors.green,
+                                backgroundColor: _isTestPlaying ? Colors.red : Colors.green,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               ),
@@ -271,16 +284,14 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   void _testAudio() async {
     try {
-      if (_audioService.isTestPlaying) {
+      if (_isTestPlaying) {
         // Stop current test
+        _logger.i('⏹️ User stopping audio test');
         await _audioService.stopTestSound();
-        _logger.i('⏹️ Stopped audio test');
-        setState(() {}); // Refresh button state
       } else {
         // Start new test
-        _logger.i('🧪 Testing audio at 100% volume: $_selectedAudioFile');
+        _logger.i('🧪 User starting audio test: $_selectedAudioFile');
         await _audioService.testSound(_selectedAudioFile);
-        setState(() {}); // Refresh button state
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -411,6 +422,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     _daysController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _testStateSubscription?.cancel();
     _audioService.stopTestSound(); // Stop any playing test
     _audioService.dispose();
     super.dispose();
