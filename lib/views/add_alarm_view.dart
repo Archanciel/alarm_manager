@@ -1,9 +1,11 @@
+// lib/views/add_alarm_view.dart - Avec bouton test audio
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../services/audio_service.dart';
 
 class AddAlarmDialog extends StatefulWidget {
   const AddAlarmDialog({super.key});
@@ -19,6 +21,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
   final _hoursController = TextEditingController(text: '00');
   final _minutesController = TextEditingController(text: '00');
   final Logger _logger = Logger();
+  final AudioService _audioService = AudioService();
 
   TimeOfDay _selectedTime = TimeOfDay.now();
   DateTime _selectedDate = DateTime.now();
@@ -122,23 +125,45 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedAudioFile,
-                decoration: const InputDecoration(
-                  labelText: 'Audio File',
-                  border: OutlineInputBorder(),
-                ),
-                items: _audioFiles.map((file) {
-                  return DropdownMenuItem(
-                    value: file,
-                    child: Text(file),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedAudioFile = value!;
-                  });
-                },
+              // Audio selection with test button
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedAudioFile,
+                      decoration: const InputDecoration(
+                        labelText: 'Audio File',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _audioFiles.map((file) {
+                        return DropdownMenuItem(
+                          value: file,
+                          child: Text(
+                            file,
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedAudioFile = value!;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _testAudio(),
+                    icon: const Icon(Icons.play_arrow, size: 20),
+                    label: const Text(''),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -155,6 +180,28 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
         ),
       ],
     );
+  }
+
+  void _testAudio() async {
+    try {
+      _logger.i('🧪 Testing audio: $_selectedAudioFile');
+      await _audioService.testSound(_selectedAudioFile);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Testing: $_selectedAudioFile'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      _logger.e('Error testing audio: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error testing audio: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String? _validateNumber(String? value, {int? max}) {
@@ -222,7 +269,6 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
         minutes: int.parse(_minutesController.text),
       );
 
-      // Combine selected date and time
       final nextAlarmDateTime = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -231,7 +277,6 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
         _selectedTime.minute,
       );
 
-      // If the selected time is in the past, move to next occurrence
       final alarmService = AlarmService();
       final calculatedNextAlarm = alarmService.calculateNextAlarmTime(
         nextAlarmDateTime,
@@ -266,6 +311,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     _daysController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _audioService.dispose();
     super.dispose();
   }
 }
