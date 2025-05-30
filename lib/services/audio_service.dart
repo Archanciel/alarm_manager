@@ -18,13 +18,18 @@ class AudioService {
   AudioPlayer? _testPlayer;
   bool _isTestPlaying = false;
   StreamSubscription<void>? _testPlayerSubscription;
-  
+
   // Stream controller to notify UI of test state changes
-  final StreamController<bool> _testStateController = StreamController<bool>.broadcast();
+  final StreamController<bool> _testStateController =
+      StreamController<bool>.broadcast();
   Stream<bool> get testStateStream => _testStateController.stream;
 
   static const String _alarmManagerDirName = 'alarm_manager';
   String? _documentsAlarmPath;
+
+  AudioService() {
+    _logger.i('🔊 AudioService initialized');
+  }
 
   /// Initialize the AudioService and ensure Documents directory is set up
   Future<void> initialize() async {
@@ -64,14 +69,16 @@ class AudioService {
         await alarmDir.create(recursive: true);
         _logger.i('📁 Created alarm_manager directory: $_documentsAlarmPath');
       } else {
-        _logger.i('📁 Using existing alarm_manager directory: $_documentsAlarmPath');
+        _logger.i(
+          '📁 Using existing alarm_manager directory: $_documentsAlarmPath',
+        );
       }
 
       // Verify directory is writable
-      final testFile = File('${_documentsAlarmPath}/test_write.tmp');
+      final testFile = File('$_documentsAlarmPath/test_write.tmp');
       await testFile.writeAsString('test');
       await testFile.delete();
-      
+
       _logger.i('✅ Documents directory setup complete: $_documentsAlarmPath');
     } catch (e) {
       _logger.e('❌ Error setting up Documents directory: $e');
@@ -88,15 +95,17 @@ class AudioService {
 
       // Get list of existing files in Documents directory
       final Directory documentsDir = Directory(_documentsAlarmPath!);
-      final List<FileSystemEntity> existingFiles = await documentsDir.list().toList();
-      final Set<String> existingFileNames = existingFiles
-          .whereType<File>()
-          .map((f) => f.path.split('/').last)
-          .toSet();
+      final List<FileSystemEntity> existingFiles =
+          await documentsDir.list().toList();
+      final Set<String> existingFileNames =
+          existingFiles
+              .whereType<File>()
+              .map((f) => f.path.split('/').last)
+              .toSet();
 
       // Get asset files to copy
       final List<String> assetFiles = await _getAssetAudioFiles();
-      
+
       _logger.i('🔄 Starting asset migration...');
       _logger.i('  - Assets to copy: ${assetFiles.length}');
       _logger.i('  - Existing files: ${existingFileNames.length}');
@@ -106,7 +115,7 @@ class AudioService {
 
       for (final String assetFile in assetFiles) {
         final String targetPath = '$_documentsAlarmPath/$assetFile';
-        
+
         if (existingFileNames.contains(assetFile)) {
           _logger.i('⏭️ Skipping existing file: $assetFile');
           skippedCount++;
@@ -115,13 +124,15 @@ class AudioService {
 
         try {
           // Load asset file
-          final ByteData assetData = await rootBundle.load('assets/sounds/$assetFile');
+          final ByteData assetData = await rootBundle.load(
+            'assets/sounds/$assetFile',
+          );
           final Uint8List bytes = assetData.buffer.asUint8List();
-          
+
           // Write to Documents directory
           final File targetFile = File(targetPath);
           await targetFile.writeAsBytes(bytes);
-          
+
           _logger.i('✅ Copied: $assetFile → Documents');
           copiedCount++;
         } catch (e) {
@@ -133,7 +144,6 @@ class AudioService {
       _logger.i('  - Copied: $copiedCount files');
       _logger.i('  - Skipped: $skippedCount files');
       _logger.i('  - Total available: ${copiedCount + skippedCount} files');
-      
     } catch (e) {
       _logger.e('❌ Error during asset migration: $e');
     }
@@ -145,15 +155,18 @@ class AudioService {
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
       final Map<String, dynamic> manifestMap = jsonDecode(manifestContent);
 
-      final audioFiles = manifestMap.keys
-          .where((String key) => key.startsWith('assets/sounds/'))
-          .map((String key) => key.replaceFirst('assets/sounds/', ''))
-          .where((String fileName) => 
-              fileName.endsWith('.mp3') ||
-              fileName.endsWith('.wav') ||
-              fileName.endsWith('.m4a') ||
-              fileName.endsWith('.aac'))
-          .toList();
+      final audioFiles =
+          manifestMap.keys
+              .where((String key) => key.startsWith('assets/sounds/'))
+              .map((String key) => key.replaceFirst('assets/sounds/', ''))
+              .where(
+                (String fileName) =>
+                    fileName.endsWith('.mp3') ||
+                    fileName.endsWith('.wav') ||
+                    fileName.endsWith('.m4a') ||
+                    fileName.endsWith('.aac'),
+              )
+              .toList();
 
       return audioFiles;
     } catch (e) {
@@ -180,8 +193,10 @@ class AudioService {
       // Configure audio player settings
       await _audioPlayer.setVolume(1.0); // Maximum volume
 
-      // Play the custom sound from assets
-      await _audioPlayer.play(AssetSource('sounds/$audioFile'));
+      // Play from Documents directory
+
+      final String filePath = '$_documentsAlarmPath/$audioFile';
+      await _audioPlayer.play(DeviceFileSource(filePath));
       _isPlaying = true;
 
       _logger.i('✅ Custom alarm sound started: $audioFile');
@@ -238,7 +253,7 @@ class AudioService {
   Future<void> testSound(String audioFile) async {
     try {
       _logger.i('🧪 Testing sound at 100% volume: $audioFile');
-      
+
       // Stop any existing test
       await stopTestSound();
 
@@ -247,12 +262,15 @@ class AudioService {
 
       // Configure and play
       await _testPlayer!.setVolume(1.0); // 100% volume for testing
-      await _testPlayer!.play(AssetSource('sounds/$audioFile'));
+
+      // Play from Documents directory
+      final String filePath = '$_documentsAlarmPath/$audioFile';
+      await _testPlayer!.play(DeviceFileSource(filePath));
       _isTestPlaying = true;
-      
+
       // Notify UI of state change
       _testStateController.add(_isTestPlaying);
-      
+
       _logger.i('✅ Test sound started (full duration): $audioFile');
       _logger.i('🎮 Test playing state: $_isTestPlaying');
 
@@ -261,12 +279,11 @@ class AudioService {
         _logger.i('🎵 Test sound completed naturally: $audioFile');
         _handleTestCompletion();
       });
-      
+
       // Listen for player state changes
       _testPlayer!.onPlayerStateChanged.listen((PlayerState state) {
         _logger.i('🎵 Test player state changed: $state');
       });
-      
     } catch (e) {
       _logger.e('❌ Error testing sound: $e');
       _handleTestCompletion();
@@ -276,18 +293,20 @@ class AudioService {
   void _handleTestCompletion() {
     _logger.i('🧹 Handling test completion...');
     _logger.i('  - Current state: isTestPlaying=$_isTestPlaying');
-    
+
     _isTestPlaying = false;
     _testPlayerSubscription?.cancel();
     _testPlayerSubscription = null;
     _testPlayer?.dispose();
     _testPlayer = null;
-    
+
     // Notify UI of state change
     _testStateController.add(_isTestPlaying);
-    
+
     _logger.i('🔔 Notified UI of test completion');
-    _logger.i('🏁 Test completion handled. Final state: isTestPlaying=$_isTestPlaying');
+    _logger.i(
+      '🏁 Test completion handled. Final state: isTestPlaying=$_isTestPlaying',
+    );
   }
 
   Future<void> stopTestSound() async {
@@ -312,29 +331,36 @@ class AudioService {
       // Get the Documents/alarm_manager directory
       const String documentsPath = '/storage/emulated/0/Documents';
       const String alarmManagerPath = '$documentsPath/$_alarmManagerDirName';
-      
+
       final Directory alarmDir = Directory(alarmManagerPath);
-      
+
       if (!await alarmDir.exists()) {
-        logger.w('⚠️ alarm_manager directory does not exist: $alarmManagerPath');
+        logger.w(
+          '⚠️ alarm_manager directory does not exist: $alarmManagerPath',
+        );
         return [];
       }
 
       // List all audio files in the directory
       final List<FileSystemEntity> entities = await alarmDir.list().toList();
-      final List<String> audioFiles = entities
-          .whereType<File>()
-          .map((file) => file.path.split('/').last)
-          .where((fileName) => 
-              fileName.endsWith('.mp3') ||
-              fileName.endsWith('.wav') ||
-              fileName.endsWith('.m4a') ||
-              fileName.endsWith('.aac'))
-          .toList();
+      final List<String> audioFiles =
+          entities
+              .whereType<File>()
+              .map((file) => file.path.split('/').last)
+              .where(
+                (fileName) =>
+                    fileName.endsWith('.mp3') ||
+                    fileName.endsWith('.wav') ||
+                    fileName.endsWith('.m4a') ||
+                    fileName.endsWith('.aac'),
+              )
+              .toList();
 
       audioFiles.sort(); // Sort alphabetically
 
-      logger.i('🎵 Found ${audioFiles.length} audio files in Documents/alarm_manager:');
+      logger.i(
+        '🎵 Found ${audioFiles.length} audio files in Documents/alarm_manager:',
+      );
       for (final file in audioFiles) {
         logger.i('  - $file');
       }
@@ -342,7 +368,7 @@ class AudioService {
       return audioFiles;
     } catch (e) {
       logger.e('❌ Error loading audio files from Documents: $e');
-      
+
       // Fallback to default list
       return [
         'arroser la plante softer.mp3',

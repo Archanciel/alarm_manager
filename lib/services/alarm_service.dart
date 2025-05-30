@@ -10,9 +10,14 @@ class AlarmService {
   static const String _alarmsKey = 'alarms';
   final Logger _logger = Logger();
   final NotificationService _notificationService = NotificationService();
-  final AudioService _audioService = AudioService();
+  AudioService? _audioService;
 
   Future<List<AlarmModel>> getAlarms() async {
+    if (_audioService == null) {
+      _audioService = AudioService();
+      await _audioService!.initialize();
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final alarmsJson = prefs.getStringList(_alarmsKey) ?? [];
@@ -108,7 +113,7 @@ class AlarmService {
       _logger.i('🔊 Playing ONLY custom sound: ${alarm.audioFile}');
 
       // Play ONLY custom sound - no system sounds involved
-      await _audioService.playAlarm(alarm.audioFile);
+      await _audioService!.playAlarm(alarm.audioFile);
       
       // Show completely silent notification
       await _notificationService.showAlarmTriggeredNotification(alarm);
