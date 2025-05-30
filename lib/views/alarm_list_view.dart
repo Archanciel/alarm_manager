@@ -1,11 +1,14 @@
-// lib/views/alarm_list_view.dart - Enhanced with auto-refresh
+// lib/views/alarm_list_view.dart - Enhanced with battery status widget
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:async';
+
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
+import '../services/battery_optimization_service.dart';
+import 'widgets/battery_status_widget.dart';
 import 'add_alarm_dialog.dart';
 import 'edit_alarm_dialog.dart';
 
@@ -126,32 +129,44 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
           }
 
           if (viewModel.alarms.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.alarm_off, size: 64, color: Colors.white70),
-                  SizedBox(height: 16),
-                  Text(
-                    'No alarms yet',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
+            return Column(
+              children: [
+                // Battery status widget - always show even when no alarms
+                const BatteryStatusWidget(autoCheck: true),
+                
+                Expanded(
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.alarm_off, size: 64, color: Colors.white70),
+                        SizedBox(height: 16),
+                        Text(
+                          'No alarms yet',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Tap + to add your first alarm!',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Tap + to add your first alarm!',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
           return Column(
             children: [
+              // Battery optimization status - critical for alarm reliability
+              const BatteryStatusWidget(autoCheck: true),
+              
               // Auto-refresh indicator
               Container(
                 width: double.infinity,
@@ -608,6 +623,16 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
                     backgroundColor: Colors.blue,
                   ),
                 );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.battery_alert),
+              title: const Text('Check Battery Optimization'),
+              subtitle: const Text('Verify battery settings for reliable alarms'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final batteryService = BatteryOptimizationService();
+                await batteryService.checkAndPromptBatteryOptimization(context, force: true);
               },
             ),
             ListTile(

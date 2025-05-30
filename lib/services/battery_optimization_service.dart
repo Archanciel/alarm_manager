@@ -108,9 +108,7 @@ class BatteryOptimizationService {
                 ),
                 SizedBox(height: 12),
                 _buildStep(1, 'Taper "Autoriser" ci-dessous'),
-                _buildStep(2, 'Choisir "Alarm Manager" dans la liste'),
-                _buildStep(3, 'Sélectionner "Non restreinte"'),
-                _buildStep(4, 'Confirmer votre choix'),
+                _buildStep(2, 'Ensuite confirmer votre choix'),
                 SizedBox(height: 16),
                 Container(
                   padding: EdgeInsets.all(12),
