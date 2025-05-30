@@ -310,7 +310,7 @@ class _DocumentsInfoWidgetState extends State<DocumentsInfoWidget> {
                             ],
                           ),
                         ),
-                      ).toList(),
+                      ),
                     ],
                   ),
               ],

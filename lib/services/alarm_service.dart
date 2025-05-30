@@ -111,7 +111,7 @@ class AlarmService {
       _logger.i('🔊 Playing ONLY custom sound: ${alarm.audioFile}');
 
       // Play ONLY custom sound - no system sounds involved
-      await _audioService!.playAlarm(alarm.audioFile);
+      await _audioService.playAlarm(alarm.audioFile);
       
       // Show completely silent notification
       await _notificationService.showAlarmTriggeredNotification(alarm);
