@@ -10,13 +10,11 @@ class AlarmService {
   static const String _alarmsKey = 'alarms';
   final Logger _logger = Logger();
   final NotificationService _notificationService = NotificationService();
-  AudioService? _audioService;
+  late AudioService _audioService;
 
   Future<List<AlarmModel>> getAlarms() async {
-    if (_audioService == null) {
-      _audioService = AudioService();
-      await _audioService!.initialize();
-    }
+
+    _audioService = await AudioService.getInstance();
 
     try {
       final prefs = await SharedPreferences.getInstance();

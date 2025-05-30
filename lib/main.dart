@@ -25,8 +25,7 @@ void main() async {
   await NotificationService().initialize();
   
   // Initialize audio service with Documents directory setup
-  final audioService = AudioService();
-  await audioService.initialize();
+  final AudioService audioService = await AudioService.getInstance();
   
   // Initialize background service
   final backgroundService = BackgroundService();

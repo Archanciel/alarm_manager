@@ -27,10 +27,15 @@ class AudioService {
   static const String _alarmManagerDirName = 'alarm_manager';
   String? _documentsAlarmPath;
 
-  AudioService() {
-    _logger.i('🔊 AudioService initialized');
+  static AudioService? _instance;
+  static Future<AudioService> getInstance() async {
+    if (_instance == null) {
+      _instance = AudioService();
+      await _instance!.initialize();
+    }
+    return _instance!;
   }
-
+  
   /// Initialize the AudioService and ensure Documents directory is set up
   Future<void> initialize() async {
     try {
