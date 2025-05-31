@@ -91,7 +91,7 @@ class BatteryOptimizationService {
                         'vous devez désactiver l\'optimisation de la batterie.',
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
-                          color: Colors.orange.shade800,
+                          color: Colors.orange[800],
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -108,7 +108,7 @@ class BatteryOptimizationService {
                 ),
                 SizedBox(height: 12),
                 _buildStep(1, 'Taper "Autoriser" ci-dessous'),
-                _buildStep(2, 'Ensuite confirmer votre choix'),
+                _buildStep(2, 'Ensuite, confirmez votre choix'),
                 SizedBox(height: 16),
                 Container(
                   padding: EdgeInsets.all(12),
@@ -121,12 +121,12 @@ class BatteryOptimizationService {
                       Icon(Icons.info, color: Colors.blue, size: 20),
                       SizedBox(width: 8),
                       Expanded(
-                        child: Text(
+                        child:                         Text(
                           'Cette autorisation est nécessaire pour que vos alarmes '
                           'se déclenchent même quand l\'écran est éteint.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.blue.shade800,
+                            color: Colors.blue[800],
                           ),
                         ),
                       ),
@@ -149,7 +149,7 @@ class BatteryOptimizationService {
                 Navigator.of(context).pop();
                 await _openBatteryOptimizationSettings(context);
               },
-              icon: Icon(Icons.battery_6_bar_rounded),
+              icon: Icon(Icons.battery_0_bar),
               label: Text('Autoriser'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
@@ -208,22 +208,36 @@ class BatteryOptimizationService {
       if (granted) {
         _logger.i('✅ Battery optimization disabled successfully');
         
-        // Show success message
+        // Show simple success dialog
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Optimisation de la batterie désactivée ! Vos alarmes fonctionneront parfaitement.'),
+          showDialog<void>(
+            context: context,
+            barrierDismissible: true,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 28),
+                    SizedBox(width: 12),
+                    Text('Parfait !'),
+                  ],
+                ),
+                content: Text(
+                  'Vos alarmes fonctionneront de manière fiable.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text('OK'),
                   ),
                 ],
-              ),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 4),
-            ),
+              );
+            },
           );
         }
       } else {
