@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'dart:async';
 
+import '../constants.dart';
 import '../view_models/alarm_view_model.dart';
 import '../models/alarm_model.dart';
 import '../services/alarm_service.dart';
@@ -589,7 +590,7 @@ class _AlarmListViewState extends State<AlarmListView>
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Debug Tools'),
+            title: const Text('Debug Tools - $kApplicationVersion'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
