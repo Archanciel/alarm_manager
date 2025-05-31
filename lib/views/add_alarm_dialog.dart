@@ -22,6 +22,9 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
   final _hoursController = TextEditingController(text: '00');
   final _minutesController = TextEditingController(text: '00');
   final Logger _logger = Logger();
+  
+  // Add FocusNode for the name field
+  final FocusNode _nameFocusNode = FocusNode();
 
   TimeOfDay _selectedTime = TimeOfDay.now();
   DateTime _selectedDate = DateTime.now();
@@ -37,6 +40,11 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     super.initState();
     _audioService = context.read<AudioService>();
     _loadAudioFiles();
+    
+    // Auto-focus and select the name field when dialog opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nameFocusNode.requestFocus();
+    });
     
     // Listen to test state changes
     _testStateSubscription = _audioService!.testStateStream.listen((isPlaying) {
@@ -101,10 +109,17 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
+                focusNode: _nameFocusNode, // Add focus node
                 decoration: const InputDecoration(
                   labelText: 'Name',
                   border: OutlineInputBorder(),
+                  hintText: 'Enter alarm name', // Add helpful hint
                 ),
+                textInputAction: TextInputAction.next, // Show "Next" button on keyboard
+                onFieldSubmitted: (_) {
+                  // Move focus to next logical field (could be time/date)
+                  FocusScope.of(context).nextFocus();
+                },
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Please enter a name';
@@ -540,6 +555,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     _daysController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _nameFocusNode.dispose(); // Dispose focus node
     _testStateSubscription?.cancel();
     _audioService?.stopTestSound(); // Stop any playing test
     super.dispose();

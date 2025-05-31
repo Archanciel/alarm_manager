@@ -24,6 +24,8 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
   late final TextEditingController _hoursController;
   late final TextEditingController _minutesController;
   final Logger _logger = Logger();
+  // Add FocusNode for the name field
+  final FocusNode _nameFocusNode = FocusNode();
 
   late TimeOfDay _selectedTime;
   late DateTime _selectedDate;
@@ -37,6 +39,11 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
   @override
   void initState() {
     super.initState();
+    
+    // Auto-focus and select the name field when dialog opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nameFocusNode.requestFocus();
+    });
     
     _audioService = context.read<AudioService>();
     
@@ -138,6 +145,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
+                focusNode: _nameFocusNode, // Add focus node
                   decoration: const InputDecoration(
                     labelText: 'Name',
                     border: OutlineInputBorder(),
@@ -633,6 +641,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     _daysController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
+    _nameFocusNode.dispose();
     _testStateSubscription?.cancel();
     _audioService?.stopTestSound(); // Stop any playing test
     super.dispose();
