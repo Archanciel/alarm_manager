@@ -19,10 +19,12 @@ class AlarmListView extends StatefulWidget {
   State<AlarmListView> createState() => _AlarmListViewState();
 }
 
-class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserver {
+class _AlarmListViewState extends State<AlarmListView>
+    with WidgetsBindingObserver {
   final Logger _logger = Logger();
   Timer? _refreshTimer;
   bool _isAppInForeground = true;
+  final _batteryService = BatteryOptimizationService();
 
   @override
   void initState() {
@@ -44,7 +46,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     switch (state) {
       case AppLifecycleState.resumed:
         _logger.i('📱 App resumed - starting auto-refresh');
@@ -67,15 +69,15 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
 
   void _startAutoRefresh() {
     _stopAutoRefresh(); // Cancel any existing timer
-    
+
     if (!_isAppInForeground) return;
-    
+
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
       if (!_isAppInForeground || !mounted) {
         timer.cancel();
         return;
       }
-      
+
       _logger.i('🔄 Auto-refreshing alarm list');
       try {
         await context.read<AlarmViewModel>().loadAlarms();
@@ -83,7 +85,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
         _logger.e('Error during auto-refresh: $e');
       }
     });
-    
+
     _logger.i('✅ Auto-refresh started (every 15 seconds)');
   }
 
@@ -133,7 +135,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
               children: [
                 // Battery status widget - always show even when no alarms
                 const BatteryStatusWidget(autoCheck: true),
-                
+
                 Expanded(
                   child: const Center(
                     child: Column(
@@ -165,22 +167,29 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
           return Column(
             children: [
               // Battery optimization status - critical for alarm reliability
-              const BatteryStatusWidget(autoCheck: true),
-              
+              (_batteryService.wasBatteryOOptimizationDisabled)
+                  ? const SizedBox(width: 0, height: 0)
+                  : const BatteryStatusWidget(autoCheck: true),
+
               // Auto-refresh indicator
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: [
                     Icon(
-                      _refreshTimer?.isActive == true ? Icons.autorenew : Icons.pause,
+                      _refreshTimer?.isActive == true
+                          ? Icons.autorenew
+                          : Icons.pause,
                       color: Colors.white70,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _refreshTimer?.isActive == true 
+                      _refreshTimer?.isActive == true
                           ? 'Auto-refresh: ON (15s)'
                           : 'Auto-refresh: OFF',
                       style: const TextStyle(
@@ -279,48 +288,49 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
                             break;
                         }
                       },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'test',
-                          child: Row(
-                            children: [
-                              Icon(Icons.play_arrow, color: Colors.green),
-                              SizedBox(width: 8),
-                              Text('Test Now'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'refresh',
-                          child: Row(
-                            children: [
-                              Icon(Icons.refresh, color: Colors.orange),
-                              SizedBox(width: 8),
-                              Text('Refresh This'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete'),
-                            ],
-                          ),
-                        ),
-                      ],
+                      itemBuilder:
+                          (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, color: Colors.blue),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'test',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.play_arrow, color: Colors.green),
+                                  SizedBox(width: 8),
+                                  Text('Test Now'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'refresh',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.refresh, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Text('Refresh This'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Delete'),
+                                ],
+                              ),
+                            ),
+                          ],
                       child: const Icon(Icons.more_vert),
                     ),
                   ],
@@ -463,7 +473,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
   void _refreshSingleAlarm(AlarmModel alarm) async {
     _logger.i('🔄 Refreshing single alarm: ${alarm.name}');
     await context.read<AlarmViewModel>().loadAlarms();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Refreshed "${alarm.name}"'),
@@ -496,7 +506,7 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
           backgroundColor: Colors.green,
         ),
       );
-      
+
       // Refresh after test to show updated fields
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -521,134 +531,154 @@ class _AlarmListViewState extends State<AlarmListView> with WidgetsBindingObserv
   ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Alarm'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Are you sure you want to delete this alarm?'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Name: ${alarm.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Alarm'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Are you sure you want to delete this alarm?'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Text('Next: ${_formatDateTime(alarm.nextAlarmDateTime)}'),
-                  Text('Periodicity: ${alarm.periodicity.formattedString}'),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              viewModel.deleteAlarm(alarm.id);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Alarm "${alarm.name}" deleted'),
-                  backgroundColor: Colors.red,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Name: ${alarm.name}',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text('Next: ${_formatDateTime(alarm.nextAlarmDateTime)}'),
+                      Text('Periodicity: ${alarm.periodicity.formattedString}'),
+                    ],
+                  ),
                 ),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  viewModel.deleteAlarm(alarm.id);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Alarm "${alarm.name}" deleted'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showDebugDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Tools'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: const Text('Check All Alarms'),
-              subtitle: const Text('Manually check if any alarms should trigger'),
-              onTap: () async {
-                Navigator.of(context).pop();
-                final alarmService = AlarmService();
-                await alarmService.checkAndTriggerAlarms();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Alarm check completed - check logs'),
-                    backgroundColor: Colors.blue,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Debug Tools'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('Check All Alarms'),
+                  subtitle: const Text(
+                    'Manually check if any alarms should trigger',
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.timer),
-              title: const Text('Force Trigger Overdue'),
-              subtitle: const Text('Trigger all overdue alarms now'),
-              onTap: () async {
-                Navigator.of(context).pop();
-                await _forceCheckOverdueAlarms();
-              },
-            ),
-            ListTile(
-              leading: Icon(_refreshTimer?.isActive == true ? Icons.pause : Icons.play_arrow),
-              title: Text(_refreshTimer?.isActive == true ? 'Stop Auto-Refresh' : 'Start Auto-Refresh'),
-              subtitle: Text('Currently: ${_refreshTimer?.isActive == true ? 'ON' : 'OFF'}'),
-              onTap: () {
-                Navigator.of(context).pop();
-                if (_refreshTimer?.isActive == true) {
-                  _stopAutoRefresh();
-                } else {
-                  _startAutoRefresh();
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Auto-refresh ${_refreshTimer?.isActive == true ? 'started' : 'stopped'}'),
-                    backgroundColor: Colors.blue,
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    final alarmService = AlarmService();
+                    await alarmService.checkAndTriggerAlarms();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Alarm check completed - check logs'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.timer),
+                  title: const Text('Force Trigger Overdue'),
+                  subtitle: const Text('Trigger all overdue alarms now'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _forceCheckOverdueAlarms();
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    _refreshTimer?.isActive == true
+                        ? Icons.pause
+                        : Icons.play_arrow,
                   ),
-                );
-              },
+                  title: Text(
+                    _refreshTimer?.isActive == true
+                        ? 'Stop Auto-Refresh'
+                        : 'Start Auto-Refresh',
+                  ),
+                  subtitle: Text(
+                    'Currently: ${_refreshTimer?.isActive == true ? 'ON' : 'OFF'}',
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    if (_refreshTimer?.isActive == true) {
+                      _stopAutoRefresh();
+                    } else {
+                      _startAutoRefresh();
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Auto-refresh ${_refreshTimer?.isActive == true ? 'started' : 'stopped'}',
+                        ),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.battery_alert),
+                  title: const Text('Check Battery Optimization'),
+                  subtitle: const Text(
+                    'Verify battery settings for reliable alarms',
+                  ),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    await _batteryService.checkAndPromptBatteryOptimization(
+                      context,
+                      force: true,
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.info),
+                  title: const Text('Current Time'),
+                  subtitle: Text(DateTime.now().toString()),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.battery_alert),
-              title: const Text('Check Battery Optimization'),
-              subtitle: const Text('Verify battery settings for reliable alarms'),
-              onTap: () async {
-                Navigator.of(context).pop();
-                final batteryService = BatteryOptimizationService();
-                await batteryService.checkAndPromptBatteryOptimization(context, force: true);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('Current Time'),
-              subtitle: Text(DateTime.now().toString()),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

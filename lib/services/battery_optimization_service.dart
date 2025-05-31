@@ -12,14 +12,17 @@ class BatteryOptimizationService {
   final Logger _logger = Logger();
   static const MethodChannel _channel = MethodChannel('alarm_manager/battery');
 
+  bool wasBatteryOOptimizationDisabled = false;
+
   /// Check if battery optimization is disabled for the app
   Future<bool> isBatteryOptimizationDisabled() async {
     try {
       // First try using permission_handler
       final status = await Permission.ignoreBatteryOptimizations.status;
       _logger.i('🔋 Battery optimization permission status: $status');
-      
-      return status.isGranted;
+      wasBatteryOOptimizationDisabled = status.isGranted;
+
+      return wasBatteryOOptimizationDisabled;
     } catch (e) {
       _logger.e('Error checking battery optimization: $e');
       return false;
