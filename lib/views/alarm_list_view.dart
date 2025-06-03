@@ -475,6 +475,8 @@ class _AlarmListViewState extends State<AlarmListView>
     _logger.i('🔄 Refreshing single alarm: ${alarm.name}');
     await context.read<AlarmViewModel>().loadAlarms();
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Refreshed "${alarm.name}"'),
@@ -500,6 +502,8 @@ class _AlarmListViewState extends State<AlarmListView>
       _logger.i('Testing alarm: ${alarm.name}');
       final alarmService = AlarmService();
       await alarmService.triggerAlarmNow(alarm.id);
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -589,7 +593,8 @@ class _AlarmListViewState extends State<AlarmListView>
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
+          (dialogContext) => AlertDialog(
+            // Renommer pour clarifier
             title: const Text('Debug Tools - $kApplicationVersion'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -601,9 +606,14 @@ class _AlarmListViewState extends State<AlarmListView>
                     'Manually check if any alarms should trigger',
                   ),
                   onTap: () async {
-                    Navigator.of(context).pop();
+                    Navigator.of(dialogContext).pop(); // Utiliser dialogContext
                     final alarmService = AlarmService();
                     await alarmService.checkAndTriggerAlarms();
+
+                    // Vérifier que le State principal est toujours monté
+                    if (!mounted) return;
+
+                    // Utiliser le context du State principal pour SnackBar
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Alarm check completed - check logs'),
@@ -617,8 +627,8 @@ class _AlarmListViewState extends State<AlarmListView>
                   title: const Text('Force Trigger Overdue'),
                   subtitle: const Text('Trigger all overdue alarms now'),
                   onTap: () async {
-                    Navigator.of(context).pop();
-                    await _forceCheckOverdueAlarms();
+                    Navigator.of(dialogContext).pop(); // Utiliser dialogContext
+                    await _forceCheckOverdueAlarms(); // Cette méthode gère déjà mounted
                   },
                 ),
                 ListTile(
@@ -636,12 +646,15 @@ class _AlarmListViewState extends State<AlarmListView>
                     'Currently: ${_refreshTimer?.isActive == true ? 'ON' : 'OFF'}',
                   ),
                   onTap: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(dialogContext).pop(); // Utiliser dialogContext
+
+                    // Pas d'async ici, donc pas besoin de mounted check
                     if (_refreshTimer?.isActive == true) {
                       _stopAutoRefresh();
                     } else {
                       _startAutoRefresh();
                     }
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -649,20 +662,6 @@ class _AlarmListViewState extends State<AlarmListView>
                         ),
                         backgroundColor: Colors.blue,
                       ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.battery_alert),
-                  title: const Text('Check Battery Optimization'),
-                  subtitle: const Text(
-                    'Verify battery settings for reliable alarms',
-                  ),
-                  onTap: () async {
-                    Navigator.of(context).pop();
-                    await _batteryService.checkAndPromptBatteryOptimization(
-                      context,
-                      force: true,
                     );
                   },
                 ),
@@ -675,7 +674,11 @@ class _AlarmListViewState extends State<AlarmListView>
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed:
+                    () =>
+                        Navigator.of(
+                          dialogContext,
+                        ).pop(), // Utiliser dialogContext
                 child: const Text('Close'),
               ),
             ],
@@ -703,6 +706,8 @@ class _AlarmListViewState extends State<AlarmListView>
 
       // Reload alarms to show updates
       await viewModel.loadAlarms();
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

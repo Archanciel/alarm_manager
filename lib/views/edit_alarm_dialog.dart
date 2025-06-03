@@ -10,7 +10,7 @@ import '../services/audio_service.dart';
 
 class EditAlarmDialog extends StatefulWidget {
   final AlarmModel alarm;
-  
+
   const EditAlarmDialog({super.key, required this.alarm});
 
   @override
@@ -39,20 +39,26 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
   @override
   void initState() {
     super.initState();
-    
+
     // Auto-focus and select the name field when dialog opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nameFocusNode.requestFocus();
     });
-    
+
     _audioService = context.read<AudioService>();
-    
+
     // Initialize controllers with current alarm values
     _nameController = TextEditingController(text: widget.alarm.name);
-    _daysController = TextEditingController(text: widget.alarm.periodicity.days.toString().padLeft(2, '0'));
-    _hoursController = TextEditingController(text: widget.alarm.periodicity.hours.toString().padLeft(2, '0'));
-    _minutesController = TextEditingController(text: widget.alarm.periodicity.minutes.toString().padLeft(2, '0'));
-    
+    _daysController = TextEditingController(
+      text: widget.alarm.periodicity.days.toString().padLeft(2, '0'),
+    );
+    _hoursController = TextEditingController(
+      text: widget.alarm.periodicity.hours.toString().padLeft(2, '0'),
+    );
+    _minutesController = TextEditingController(
+      text: widget.alarm.periodicity.minutes.toString().padLeft(2, '0'),
+    );
+
     // Initialize date/time with current alarm values
     _selectedDate = DateTime(
       widget.alarm.nextAlarmDateTime.year,
@@ -63,12 +69,12 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
       hour: widget.alarm.nextAlarmDateTime.hour,
       minute: widget.alarm.nextAlarmDateTime.minute,
     );
-    
+
     _selectedAudioFile = widget.alarm.audioFile;
-    
+
     // Load audio files from Documents directory
     _loadAudioFiles();
-    
+
     // Listen to test state changes
     _testStateSubscription = _audioService!.testStateStream.listen((isPlaying) {
       _logger.i('🔄 Test state changed: $isPlaying');
@@ -82,28 +88,36 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
 
   Future<void> _loadAudioFiles() async {
     try {
-      _logger.i('📂 Loading audio files from Documents/alarm_manager directory for edit...');
+      _logger.i(
+        '📂 Loading audio files from Documents/alarm_manager directory for edit...',
+      );
       final files = await AudioService.getAvailableAudioFiles();
-      
+
       setState(() {
         _audioFiles = files;
-        
+
         // Check if the current alarm's audio file still exists
         if (!files.contains(_selectedAudioFile)) {
-          _logger.w('⚠️ Current audio file not found in Documents: $_selectedAudioFile');
+          _logger.w(
+            '⚠️ Current audio file not found in Documents: $_selectedAudioFile',
+          );
           if (files.isNotEmpty) {
             _selectedAudioFile = files.first;
-            _logger.i('🔄 Defaulted to first available file: $_selectedAudioFile');
+            _logger.i(
+              '🔄 Defaulted to first available file: $_selectedAudioFile',
+            );
           } else {
             _selectedAudioFile = '';
             _logger.w('⚠️ No audio files available');
           }
         }
-        
+
         _isLoadingAudio = false;
       });
-      
-      _logger.i('✅ Loaded ${files.length} audio files from Documents for editing');
+
+      _logger.i(
+        '✅ Loaded ${files.length} audio files from Documents for editing',
+      );
     } catch (e) {
       _logger.e('❌ Error loading audio files for edit: $e');
       setState(() {
@@ -118,10 +132,12 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     setState(() {
       _isLoadingAudio = true;
     });
-    
+
     _logger.i('🔄 Refreshing audio files in edit dialog...');
     await _loadAudioFiles();
-    
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Refreshed: ${_audioFiles.length} audio files found'),
@@ -145,7 +161,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                focusNode: _nameFocusNode, // Add focus node
+                  focusNode: _nameFocusNode, // Add focus node
                   decoration: const InputDecoration(
                     labelText: 'Name',
                     border: OutlineInputBorder(),
@@ -269,7 +285,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Audio selection section with Documents directory support
                 if (_isLoadingAudio)
                   const Row(
@@ -317,7 +333,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       if (_audioFiles.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -335,7 +351,9 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                                   SizedBox(width: 8),
                                   Text(
                                     'No audio files found',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -354,38 +372,50 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _selectedAudioFile.isEmpty || !_audioFiles.contains(_selectedAudioFile) 
-                                    ? null 
-                                    : _selectedAudioFile,
+                                value:
+                                    _selectedAudioFile.isEmpty ||
+                                            !_audioFiles.contains(
+                                              _selectedAudioFile,
+                                            )
+                                        ? null
+                                        : _selectedAudioFile,
                                 decoration: InputDecoration(
                                   labelText: 'Select Audio File',
                                   border: const OutlineInputBorder(),
-                                  helperText: _audioFiles.contains(widget.alarm.audioFile) 
-                                      ? null 
-                                      : 'Original file missing: ${widget.alarm.audioFile}',
-                                  helperStyle: const TextStyle(color: Colors.orange),
+                                  helperText:
+                                      _audioFiles.contains(
+                                            widget.alarm.audioFile,
+                                          )
+                                          ? null
+                                          : 'Original file missing: ${widget.alarm.audioFile}',
+                                  helperStyle: const TextStyle(
+                                    color: Colors.orange,
+                                  ),
                                 ),
-                                items: _audioFiles.map((file) {
-                                  return DropdownMenuItem(
-                                    value: file,
-                                    child: Tooltip(
-                                      message: file,
-                                      child: Text(
-                                        file,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: file == widget.alarm.audioFile 
-                                              ? FontWeight.bold 
-                                              : FontWeight.normal,
-                                          color: file == widget.alarm.audioFile 
-                                              ? Colors.blue 
-                                              : null,
+                                items:
+                                    _audioFiles.map((file) {
+                                      return DropdownMenuItem(
+                                        value: file,
+                                        child: Tooltip(
+                                          message: file,
+                                          child: Text(
+                                            file,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight:
+                                                  file == widget.alarm.audioFile
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                              color:
+                                                  file == widget.alarm.audioFile
+                                                      ? Colors.blue
+                                                      : null,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
+                                      );
+                                    }).toList(),
                                 onChanged: (value) {
                                   if (value != null) {
                                     setState(() {
@@ -406,16 +436,27 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                               children: [
                                 const SizedBox(height: 16),
                                 ElevatedButton.icon(
-                                  onPressed: _selectedAudioFile.isEmpty ? null : _testAudio,
+                                  onPressed:
+                                      _selectedAudioFile.isEmpty
+                                          ? null
+                                          : _testAudio,
                                   icon: Icon(
-                                    _isTestPlaying ? Icons.stop : Icons.play_arrow,
+                                    _isTestPlaying
+                                        ? Icons.stop
+                                        : Icons.play_arrow,
                                     size: 18,
                                   ),
                                   label: const Text(''),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: _isTestPlaying ? Colors.red : Colors.green,
+                                    backgroundColor:
+                                        _isTestPlaying
+                                            ? Colors.red
+                                            : Colors.green,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -444,7 +485,8 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                     Text(
                       'Status: ${widget.alarm.isActive ? 'Active' : 'Inactive'}',
                       style: TextStyle(
-                        color: widget.alarm.isActive ? Colors.green : Colors.red,
+                        color:
+                            widget.alarm.isActive ? Colors.green : Colors.red,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -479,12 +521,18 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
         await _audioService?.stopTestSound();
       } else {
         // Start new test
-        _logger.i('🧪 User starting audio test in edit dialog: $_selectedAudioFile');
+        _logger.i(
+          '🧪 User starting audio test in edit dialog: $_selectedAudioFile',
+        );
         await _audioService?.testSound(_selectedAudioFile);
-        
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Testing: $_selectedAudioFile (from Documents, 100% volume)'),
+            content: Text(
+              'Testing: $_selectedAudioFile (from Documents, 100% volume)',
+            ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -492,6 +540,9 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
       }
     } catch (e) {
       _logger.e('Error testing audio in edit dialog: $e');
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error testing audio: $e'),
@@ -505,33 +556,35 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
-    
+
     final number = int.tryParse(value);
     if (number == null) {
       return 'Invalid number';
     }
-    
+
     if (number < 0) {
       return 'Must be positive';
     }
-    
+
     if (max != null && number > max) {
       return 'Max $max';
     }
-    
+
     return null;
   }
 
   Future<void> _selectDate() async {
     _logger.i('Date selector tapped in edit dialog');
-    
+
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)), // Allow today
+      firstDate: DateTime.now().subtract(
+        const Duration(days: 1),
+      ), // Allow today
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    
+
     if (date != null) {
       _logger.i('New date selected in edit dialog: $date');
       setState(() {
@@ -544,12 +597,12 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
 
   Future<void> _selectTime() async {
     _logger.i('Time selector tapped in edit dialog');
-    
+
     final time = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
     );
-    
+
     if (time != null) {
       _logger.i('New time selected in edit dialog: $time');
       setState(() {
@@ -572,7 +625,9 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     if (_audioFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No audio files available. Please add audio files to Documents/alarm_manager/'),
+          content: Text(
+            'No audio files available. Please add audio files to Documents/alarm_manager/',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -582,7 +637,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     try {
       // Stop any test audio before saving
       _audioService?.stopTestSound();
-      
+
       final periodicity = AlarmPeriodicity(
         days: int.parse(_daysController.text),
         hours: int.parse(_hoursController.text),
@@ -614,13 +669,17 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
 
       context.read<AlarmViewModel>().updateAlarm(updatedAlarm);
       Navigator.of(context).pop();
-      
-      _logger.i('Alarm updated: ${updatedAlarm.name} with Documents audio: $_selectedAudioFile');
-      
+
+      _logger.i(
+        'Alarm updated: ${updatedAlarm.name} with Documents audio: $_selectedAudioFile',
+      );
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Alarm "${updatedAlarm.name}" updated with Documents audio!'),
+          content: Text(
+            'Alarm "${updatedAlarm.name}" updated with Documents audio!',
+          ),
           backgroundColor: Colors.green,
         ),
       );

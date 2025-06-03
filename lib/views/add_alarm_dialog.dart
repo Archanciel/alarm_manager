@@ -22,7 +22,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
   final _hoursController = TextEditingController(text: '00');
   final _minutesController = TextEditingController(text: '00');
   final Logger _logger = Logger();
-  
+
   // Add FocusNode for the name field
   final FocusNode _nameFocusNode = FocusNode();
 
@@ -40,12 +40,12 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     super.initState();
     _audioService = context.read<AudioService>();
     _loadAudioFiles();
-    
+
     // Auto-focus and select the name field when dialog opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _nameFocusNode.requestFocus();
     });
-    
+
     // Listen to test state changes
     _testStateSubscription = _audioService!.testStateStream.listen((isPlaying) {
       _logger.i('🔄 Test state changed: $isPlaying');
@@ -59,15 +59,17 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   Future<void> _loadAudioFiles() async {
     try {
-      _logger.i('📂 Loading audio files from Documents/alarm_manager directory...');
+      _logger.i(
+        '📂 Loading audio files from Documents/alarm_manager directory...',
+      );
       final files = await AudioService.getAvailableAudioFiles();
-      
+
       setState(() {
         _audioFiles = files;
         _selectedAudioFile = files.isNotEmpty ? files.first : '';
         _isLoadingAudio = false;
       });
-      
+
       _logger.i('✅ Loaded ${files.length} audio files from Documents');
     } catch (e) {
       _logger.e('❌ Error loading audio files: $e');
@@ -83,10 +85,12 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     setState(() {
       _isLoadingAudio = true;
     });
-    
+
     _logger.i('🔄 Refreshing audio files...');
     await _loadAudioFiles();
-    
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Refreshed: ${_audioFiles.length} audio files found'),
@@ -115,7 +119,8 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                   border: OutlineInputBorder(),
                   hintText: 'Enter alarm name', // Add helpful hint
                 ),
-                textInputAction: TextInputAction.next, // Show "Next" button on keyboard
+                textInputAction:
+                    TextInputAction.next, // Show "Next" button on keyboard
                 onFieldSubmitted: (_) {
                   // Move focus to next logical field (could be time/date)
                   FocusScope.of(context).nextFocus();
@@ -192,7 +197,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Audio selection section with Documents info
               if (_isLoadingAudio)
                 const Row(
@@ -240,7 +245,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    
+
                     if (_audioFiles.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -277,24 +282,28 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedAudioFile.isEmpty ? null : _selectedAudioFile,
+                              value:
+                                  _selectedAudioFile.isEmpty
+                                      ? null
+                                      : _selectedAudioFile,
                               decoration: const InputDecoration(
                                 labelText: 'Select Audio File',
                                 border: OutlineInputBorder(),
                               ),
-                              items: _audioFiles.map((file) {
-                                return DropdownMenuItem(
-                                  value: file,
-                                  child: Tooltip(
-                                    message: file,
-                                    child: Text(
-                                      file,
-                                      style: const TextStyle(fontSize: 12),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                              items:
+                                  _audioFiles.map((file) {
+                                    return DropdownMenuItem(
+                                      value: file,
+                                      child: Tooltip(
+                                        message: file,
+                                        child: Text(
+                                          file,
+                                          style: const TextStyle(fontSize: 12),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                               onChanged: (value) {
                                 if (value != null) {
                                   setState(() {
@@ -315,16 +324,27 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                             children: [
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
-                                onPressed: _selectedAudioFile.isEmpty ? null : _testAudio,
+                                onPressed:
+                                    _selectedAudioFile.isEmpty
+                                        ? null
+                                        : _testAudio,
                                 icon: Icon(
-                                  _isTestPlaying ? Icons.stop : Icons.play_arrow,
+                                  _isTestPlaying
+                                      ? Icons.stop
+                                      : Icons.play_arrow,
                                   size: 18,
                                 ),
                                 label: const Text(''),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isTestPlaying ? Colors.red : Colors.green,
+                                  backgroundColor:
+                                      _isTestPlaying
+                                          ? Colors.red
+                                          : Colors.green,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -339,7 +359,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                           ),
                         ],
                       ),
-                      
+
                     // Instructions for adding custom audio files
                     const SizedBox(height: 12),
                     Container(
@@ -406,12 +426,18 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
         await _audioService?.stopTestSound();
       } else {
         // Start new test
-        _logger.i('🧪 User starting audio test from Documents: $_selectedAudioFile');
+        _logger.i(
+          '🧪 User starting audio test from Documents: $_selectedAudioFile',
+        );
         await _audioService?.testSound(_selectedAudioFile);
-        
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Testing: $_selectedAudioFile (from Documents, 100% volume)'),
+            content: Text(
+              'Testing: $_selectedAudioFile (from Documents, 100% volume)',
+            ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 2),
           ),
@@ -419,6 +445,9 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
       }
     } catch (e) {
       _logger.e('Error testing audio: $e');
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error testing audio: $e'),
@@ -432,20 +461,20 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     if (value == null || value.trim().isEmpty) {
       return 'Required';
     }
-    
+
     final number = int.tryParse(value);
     if (number == null) {
       return 'Invalid number';
     }
-    
+
     if (number < 0) {
       return 'Must be positive';
     }
-    
+
     if (max != null && number > max) {
       return 'Max $max';
     }
-    
+
     return null;
   }
 
@@ -456,7 +485,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    
+
     if (date != null) {
       setState(() {
         _selectedDate = date;
@@ -469,7 +498,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
       context: context,
       initialTime: _selectedTime,
     );
-    
+
     if (time != null) {
       setState(() {
         _selectedTime = time;
@@ -489,7 +518,9 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     if (_audioFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No audio files available. Please add audio files to Documents/alarm_manager/'),
+          content: Text(
+            'No audio files available. Please add audio files to Documents/alarm_manager/',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -499,7 +530,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
     try {
       // Stop any test audio before saving
       _audioService?.stopTestSound();
-      
+
       final periodicity = AlarmPeriodicity(
         days: int.parse(_daysController.text),
         hours: int.parse(_hoursController.text),
@@ -529,9 +560,11 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
       context.read<AlarmViewModel>().addAlarm(alarm);
       Navigator.of(context).pop();
-      
-      _logger.i('New alarm created: ${alarm.name} with Documents audio: $_selectedAudioFile');
-      
+
+      _logger.i(
+        'New alarm created: ${alarm.name} with Documents audio: $_selectedAudioFile',
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Alarm "${alarm.name}" created with Documents audio!'),

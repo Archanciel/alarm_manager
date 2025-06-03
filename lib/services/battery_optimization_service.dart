@@ -2,15 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:logger/logger.dart';
-import 'package:flutter/services.dart';
 
 class BatteryOptimizationService {
-  static final BatteryOptimizationService _instance = BatteryOptimizationService._internal();
+  static final BatteryOptimizationService _instance =
+      BatteryOptimizationService._internal();
   factory BatteryOptimizationService() => _instance;
   BatteryOptimizationService._internal();
 
   final Logger _logger = Logger();
-  static const MethodChannel _channel = MethodChannel('alarm_manager/battery');
 
   bool wasBatteryOOptimizationDisabled = false;
 
@@ -33,10 +32,10 @@ class BatteryOptimizationService {
   Future<bool> requestDisableBatteryOptimization() async {
     try {
       _logger.i('🔋 Requesting battery optimization exemption...');
-      
+
       final status = await Permission.ignoreBatteryOptimizations.request();
       _logger.i('🔋 Battery optimization request result: $status');
-      
+
       return status.isGranted;
     } catch (e) {
       _logger.e('Error requesting battery optimization exemption: $e');
@@ -47,11 +46,13 @@ class BatteryOptimizationService {
   /// Show battery optimization guidance dialog
   Future<void> showBatteryOptimizationDialog(BuildContext context) async {
     final bool isOptimized = !(await isBatteryOptimizationDisabled());
-    
+
     if (!isOptimized) {
       _logger.i('✅ Battery optimization already disabled');
       return;
     }
+
+    if (!context.mounted) return;
 
     return showDialog<void>(
       context: context,
@@ -65,10 +66,7 @@ class BatteryOptimizationService {
               Expanded(
                 child: Text(
                   'Optimisation de la batterie',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -104,10 +102,7 @@ class BatteryOptimizationService {
                 SizedBox(height: 16),
                 Text(
                   'Étapes à suivre :',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 SizedBox(height: 12),
                 _buildStep(1, 'Taper "Autoriser" ci-dessous'),
@@ -124,7 +119,7 @@ class BatteryOptimizationService {
                       Icon(Icons.info, color: Colors.blue, size: 20),
                       SizedBox(width: 8),
                       Expanded(
-                        child:                         Text(
+                        child: Text(
                           'Cette autorisation est nécessaire pour que vos alarmes '
                           'se déclenchent même quand l\'écran est éteint.',
                           style: TextStyle(
@@ -190,12 +185,7 @@ class BatteryOptimizationService {
             ),
           ),
           SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 14),
-            ),
-          ),
+          Expanded(child: Text(text, style: TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -205,12 +195,12 @@ class BatteryOptimizationService {
   Future<void> _openBatteryOptimizationSettings(BuildContext context) async {
     try {
       _logger.i('🔋 Opening battery optimization settings...');
-      
+
       final bool granted = await requestDisableBatteryOptimization();
-      
+
       if (granted) {
         _logger.i('✅ Battery optimization disabled successfully');
-        
+
         // Show simple success dialog
         if (context.mounted) {
           showDialog<void>(
@@ -245,7 +235,7 @@ class BatteryOptimizationService {
         }
       } else {
         _logger.w('⚠️ Battery optimization not disabled');
-        
+
         // Show guidance message
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -258,7 +248,9 @@ class BatteryOptimizationService {
                     'Optimisation non désactivée',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text('Paramètres → Batterie → Alarm Manager → Non restreinte'),
+                  Text(
+                    'Paramètres → Batterie → Alarm Manager → Non restreinte',
+                  ),
                 ],
               ),
               backgroundColor: Colors.orange,
@@ -274,7 +266,7 @@ class BatteryOptimizationService {
       }
     } catch (e) {
       _logger.e('Error opening battery settings: $e');
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -287,13 +279,19 @@ class BatteryOptimizationService {
   }
 
   /// Check battery optimization status and show dialog if needed
-  Future<void> checkAndPromptBatteryOptimization(BuildContext context, {bool force = false}) async {
+  Future<void> checkAndPromptBatteryOptimization(
+    BuildContext context, {
+    bool force = false,
+  }) async {
     try {
       final bool isDisabled = await isBatteryOptimizationDisabled();
-      
+
       _logger.i('🔋 Battery optimization status - Disabled: $isDisabled');
-      
+
       if (!isDisabled || force) {
+        
+        if (!context.mounted) return;
+
         await showBatteryOptimizationDialog(context);
       } else {
         _logger.i('✅ Battery optimization already disabled - no action needed');
@@ -307,15 +305,16 @@ class BatteryOptimizationService {
   Future<Map<String, dynamic>> getBatteryOptimizationStatus() async {
     try {
       final bool isDisabled = await isBatteryOptimizationDisabled();
-      
+
       return {
         'isOptimized': !isDisabled,
         'isDisabled': isDisabled,
         'status': isDisabled ? 'Non restreinte' : 'Optimisée/Restreinte',
         'statusColor': isDisabled ? Colors.green : Colors.orange,
-        'recommendation': isDisabled 
-            ? 'Parfait ! Vos alarmes fonctionneront de manière fiable.'
-            : 'Désactivez l\'optimisation pour des alarmes fiables.',
+        'recommendation':
+            isDisabled
+                ? 'Parfait ! Vos alarmes fonctionneront de manière fiable.'
+                : 'Désactivez l\'optimisation pour des alarmes fiables.',
       };
     } catch (e) {
       _logger.e('Error getting battery status: $e');
