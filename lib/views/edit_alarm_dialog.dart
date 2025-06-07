@@ -179,6 +179,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                 Row(
                   children: [
                     Expanded(
+                      flex: 5,
                       child: InkWell(
                         onTap: _selectDate,
                         borderRadius: BorderRadius.circular(4),
@@ -210,6 +211,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
+                      flex: 3,
                       child: InkWell(
                         onTap: _selectTime,
                         borderRadius: BorderRadius.circular(4),
