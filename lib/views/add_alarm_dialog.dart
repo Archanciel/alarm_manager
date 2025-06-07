@@ -102,6 +102,8 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
 
   @override
   Widget build(BuildContext context) {
+    int lastIndex = _audioFiles.length - 1;
+
     return AlertDialog(
       title: const Text('Add New Alarm'),
       content: SizedBox(
@@ -266,16 +268,42 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                                 border: OutlineInputBorder(),
                               ),
                               items:
-                                  _audioFiles.map((file) {
+                                  _audioFiles.asMap().entries.map((entry) {
+                                    int index = entry.key;
+                                    String file = entry.value;
                                     return DropdownMenuItem(
                                       value: file,
-                                      child: Tooltip(
-                                        message: file,
-                                        child: Text(
-                                          file,
-                                          style: const TextStyle(fontSize: 12),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Tooltip(
+                                            message: file,
+                                            child: Text(
+                                              file,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          (index == lastIndex)
+                                              ? IconButton(
+                                                onPressed: _refreshAudioFiles,
+                                                padding: EdgeInsets.zero,
+                                                constraints: BoxConstraints(
+                                                  minWidth: 20,
+                                                  minHeight: 20,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                icon: const Icon(
+                                                  Icons.refresh,
+                                                  color: Colors.blue,
+                                                ),
+                                                tooltip: 'Refresh audio files',
+                                              )
+                                              : const SizedBox.shrink(),
+                                        ],
                                       ),
                                     );
                                   }).toList(),
