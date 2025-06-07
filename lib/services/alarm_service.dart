@@ -44,7 +44,7 @@ class AlarmService {
 
   Future<void> addAlarm(AlarmModel alarm) async {
     try {
-      final alarms = await getAlarms();
+      List<AlarmModel> alarms = await getAlarms();
       alarms.add(alarm);
       await saveAlarms(alarms);
 
@@ -153,7 +153,13 @@ class AlarmService {
     DateTime currentAlarmTime,
     AlarmPeriodicity periodicity,
   ) {
-    final DateTime now = DateTime.now();
+    DateTime now = DateTime.now();
+    
+    if (currentAlarmTime.isAfter(now)) {
+      _logger.i('Current alarm time is in the future: $currentAlarmTime');
+      return currentAlarmTime;
+    }
+
     DateTime nextTime = currentAlarmTime.add(periodicity.duration);
     int i = 1;
 

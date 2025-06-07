@@ -388,7 +388,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '• Copy .mp3/.wav files to Documents/alarm_manager/\n'
+                            '• Copy .mp3 files to Documents/alarm_manager/\n'
                             '• Use file manager or connect via USB\n'
                             '• Tap refresh button to see new files',
                             style: TextStyle(fontSize: 11, color: Colors.blue),
