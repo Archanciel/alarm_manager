@@ -35,7 +35,7 @@ class AudioService {
     }
     return _instance!;
   }
-  
+
   /// Initialize the AudioService and ensure Documents directory is set up
   Future<void> initialize() async {
     try {
@@ -100,13 +100,11 @@ class AudioService {
 
       // Get list of existing files in Documents directory
       final Directory documentsDir = Directory(_documentsAlarmPath!);
-      final List<FileSystemEntity> existingFiles =
+      final List<FileSystemEntity> filesAAndSubDirs =
           await documentsDir.list().toList();
+      final List<File> files = filesAAndSubDirs.whereType<File>().toList();
       final Set<String> existingFileNames =
-          existingFiles
-              .whereType<File>()
-              .map((f) => f.path.split('/').last)
-              .toSet();
+          files.map((f) => f.path.split('/').last).toSet();
 
       // Get asset files to copy
       final List<String> assetFiles = await _getAssetAudioFiles();
@@ -164,13 +162,7 @@ class AudioService {
           manifestMap.keys
               .where((String key) => key.startsWith('assets/sounds/'))
               .map((String key) => key.replaceFirst('assets/sounds/', ''))
-              .where(
-                (String fileName) =>
-                    fileName.endsWith('.mp3') ||
-                    fileName.endsWith('.wav') ||
-                    fileName.endsWith('.m4a') ||
-                    fileName.endsWith('.aac'),
-              )
+              .where((String fileName) => fileName.endsWith('.mp3'))
               .toList();
 
       return audioFiles;
