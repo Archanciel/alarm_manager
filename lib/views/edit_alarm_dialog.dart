@@ -149,6 +149,8 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
 
   @override
   Widget build(BuildContext context) {
+    int lastIndex = _audioFiles.length - 1;
+
     return AlertDialog(
       title: const Text('Edit Alarm'),
       content: SizedBox(
@@ -360,26 +362,43 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                                   ),
                                 ),
                                 items:
-                                    _audioFiles.map((file) {
+                                    _audioFiles.asMap().entries.map((entry) {
+                                      int index = entry.key;
+                                      String file = entry.value;
                                       return DropdownMenuItem(
                                         value: file,
-                                        child: Tooltip(
-                                          message: file,
-                                          child: Text(
-                                            file,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight:
-                                                  file == widget.alarm.audioFile
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                              color:
-                                                  file == widget.alarm.audioFile
-                                                      ? Colors.blue
-                                                      : null,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Tooltip(
+                                              message: file,
+                                              child: Text(
+                                                file,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                ),
+                                              ),
                                             ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                            (index == lastIndex)
+                                                ? IconButton(
+                                                  onPressed: _refreshAudioFiles,
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: BoxConstraints(
+                                                    minWidth: 20,
+                                                    minHeight: 20,
+                                                  ),
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                  icon: const Icon(
+                                                    Icons.refresh,
+                                                    color: Colors.blue,
+                                                  ),
+                                                  tooltip:
+                                                      'Refresh audio files',
+                                                )
+                                                : const SizedBox.shrink(),
+                                          ],
                                         ),
                                       );
                                     }).toList(),
