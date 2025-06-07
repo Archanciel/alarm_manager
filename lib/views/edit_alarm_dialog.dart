@@ -299,39 +299,6 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.folder, color: Colors.orange),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Audio Files from Documents (${_audioFiles.length} found)',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const Text(
-                                  '/storage/emulated/0/Documents/alarm_manager/',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _refreshAudioFiles,
-                            icon: const Icon(Icons.refresh, color: Colors.blue),
-                            tooltip: 'Refresh audio files',
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 8),
 
                       if (_audioFiles.isEmpty)
@@ -359,7 +326,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                '1. Add .mp3/.wav files to Documents/alarm_manager\n'
+                                '1. Add .mp3 files to Documents/alarm_manager\n'
                                 '2. Tap refresh button above\n'
                                 '3. Select a new audio file for this alarm',
                                 style: TextStyle(fontSize: 12),

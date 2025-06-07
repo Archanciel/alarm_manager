@@ -211,39 +211,6 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.folder, color: Colors.orange),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Audio Files from Documents (${_audioFiles.length} found)',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const Text(
-                                '/storage/emulated/0/Documents/alarm_manager/',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _refreshAudioFiles,
-                          icon: const Icon(Icons.refresh, color: Colors.blue),
-                          tooltip: 'Refresh audio files',
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 8),
 
                     if (_audioFiles.isEmpty)
@@ -254,23 +221,31 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                           border: Border.all(color: Colors.orange),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.warning, color: Colors.orange),
-                                SizedBox(width: 8),
-                                Text(
+                                const Icon(Icons.warning, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                const Text(
                                   'No audio files found',
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
+                                IconButton(
+                                  onPressed: _refreshAudioFiles,
+                                  icon: const Icon(
+                                    Icons.refresh,
+                                    color: Colors.blue,
+                                  ),
+                                  tooltip: 'Refresh audio files',
+                                ),
                               ],
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               '1. Check if Documents/alarm_manager directory exists\n'
-                              '2. Place .mp3/.wav files in that directory\n'
+                              '2. Place .mp3 files in that directory\n'
                               '3. Tap refresh button above',
                               style: TextStyle(fontSize: 12),
                             ),
