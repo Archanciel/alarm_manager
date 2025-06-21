@@ -16,11 +16,15 @@ class AddAlarmDialog extends StatefulWidget {
 }
 
 class _AddAlarmDialogState extends State<AddAlarmDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _daysController = TextEditingController(text: '00');
-  final _hoursController = TextEditingController(text: '00');
-  final _minutesController = TextEditingController(text: '00');
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController = TextEditingController();
+  late final TextEditingController _daysController = TextEditingController(text: '00');
+  late final TextEditingController _hoursController = TextEditingController(text: '00');
+  late final TextEditingController _minutesController = TextEditingController(text: '00');
+  late final TextEditingController _limitFromHoursController = TextEditingController(text: '00');
+  late final TextEditingController _limitFromMinutesController = TextEditingController(text: '00');
+  late final TextEditingController _limitToHoursController = TextEditingController(text: '00');
+  late final TextEditingController _limitToMinutesController = TextEditingController(text: '00');
   final Logger _logger = Logger();
 
   // Add FocusNode for the name field
@@ -199,6 +203,62 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
                 ],
               ),
               const SizedBox(height: 16),
+                const Text(
+                  'Limit (from hh:mm to hh:mm)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitFromHoursController,
+                        decoration: const InputDecoration(
+                          labelText: 'HH',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 23),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitFromMinutesController,
+                        decoration: const InputDecoration(
+                          labelText: 'MM',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 59),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitToHoursController,
+                        decoration: const InputDecoration(
+                          labelText: 'HH',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 23),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitToMinutesController,
+                        decoration: const InputDecoration(
+                          labelText: 'MM',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 59),
+                      ),
+                    ),
+                  ],
+                ),
 
               // Audio selection section with Documents info
               if (_isLoadingAudio)
@@ -534,7 +594,7 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
       // Stop any test audio before saving
       _audioService?.stopTestSound();
 
-      final periodicity = AlarmPeriodicity(
+      final AlarmPeriodicity periodicity = AlarmPeriodicity(
         days: int.parse(_daysController.text),
         hours: int.parse(_hoursController.text),
         minutes: int.parse(_minutesController.text),
@@ -554,10 +614,18 @@ class _AddAlarmDialogState extends State<AddAlarmDialog> {
         periodicity,
       );
 
+      final AlarmLimit limit = AlarmLimit(
+          fromHours: int.parse(_limitFromHoursController.text),
+          fromMinutes: int.parse(_limitFromMinutesController.text),
+          toHours: int.parse(_limitToHoursController.text),
+          toMinutes: int.parse(_limitToMinutesController.text),
+        );
+
       final alarm = AlarmModel(
         name: _nameController.text.trim(),
         nextAlarmDateTime: calculatedNextAlarm,
         periodicity: periodicity,
+        limit: limit,
         audioFile: _selectedAudioFile,
       );
 

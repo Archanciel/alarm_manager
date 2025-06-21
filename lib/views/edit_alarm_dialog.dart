@@ -18,11 +18,15 @@ class EditAlarmDialog extends StatefulWidget {
 }
 
 class _EditAlarmDialogState extends State<EditAlarmDialog> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _daysController;
   late final TextEditingController _hoursController;
   late final TextEditingController _minutesController;
+  late final TextEditingController _limitFromHoursController;
+  late final TextEditingController _limitFromMinutesController;
+  late final TextEditingController _limitToHoursController;
+  late final TextEditingController _limitToMinutesController;
   final Logger _logger = Logger();
   // Add FocusNode for the name field
   final FocusNode _nameFocusNode = FocusNode();
@@ -57,6 +61,18 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
     );
     _minutesController = TextEditingController(
       text: widget.alarm.periodicity.minutes.toString().padLeft(2, '0'),
+    );
+    _limitFromHoursController = TextEditingController(
+      text: widget.alarm.limit.fromHours.toString().padLeft(2, '0'),
+    );
+    _limitFromMinutesController = TextEditingController(
+      text: widget.alarm.limit.fromMinutes.toString().padLeft(2, '0'),
+    );
+    _limitToHoursController = TextEditingController(
+      text: widget.alarm.limit.toHours.toString().padLeft(2, '0'),
+    );
+    _limitToMinutesController = TextEditingController(
+      text: widget.alarm.limit.toMinutes.toString().padLeft(2, '0'),
     );
 
     // Initialize date/time with current alarm values
@@ -289,6 +305,62 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                const Text(
+                  'Limit (from hh:mm to hh:mm)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitFromHoursController,
+                        decoration: const InputDecoration(
+                          labelText: 'HH',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 23),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitFromMinutesController,
+                        decoration: const InputDecoration(
+                          labelText: 'MM',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 59),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitToHoursController,
+                        decoration: const InputDecoration(
+                          labelText: 'HH',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 23),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _limitToMinutesController,
+                        decoration: const InputDecoration(
+                          labelText: 'MM',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) => _validateNumber(value, max: 59),
+                      ),
+                    ),
+                  ],
+                ),
 
                 // Audio selection section with Documents directory support
                 if (_isLoadingAudio)

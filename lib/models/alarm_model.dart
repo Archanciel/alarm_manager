@@ -8,6 +8,7 @@ class AlarmModel {
   final DateTime? lastAlarmDateTime;
   final DateTime? realAlarmDateTime;
   final AlarmPeriodicity periodicity;
+  final AlarmLimit limit;
   final String audioFile;
   final bool isActive;
 
@@ -18,6 +19,7 @@ class AlarmModel {
     this.lastAlarmDateTime,
     this.realAlarmDateTime,
     required this.periodicity,
+    required this.limit,
     required this.audioFile,
     this.isActive = true,
   }) : id = id ?? const Uuid().v4();
@@ -28,6 +30,7 @@ class AlarmModel {
     DateTime? lastAlarmDateTime,
     DateTime? realAlarmDateTime,
     AlarmPeriodicity? periodicity,
+    AlarmLimit? limit,
     String? audioFile,
     bool? isActive,
   }) {
@@ -38,6 +41,7 @@ class AlarmModel {
       lastAlarmDateTime: lastAlarmDateTime ?? this.lastAlarmDateTime,
       realAlarmDateTime: realAlarmDateTime ?? this.realAlarmDateTime,
       periodicity: periodicity ?? this.periodicity,
+      limit: limit ?? this.limit,
       audioFile: audioFile ?? this.audioFile,
       isActive: isActive ?? this.isActive,
     );
@@ -51,6 +55,7 @@ class AlarmModel {
       'lastAlarmDateTime': lastAlarmDateTime?.toIso8601String(),
       'realAlarmDateTime': realAlarmDateTime?.toIso8601String(),
       'periodicity': periodicity.toJson(),
+      'limit': limit.toJson(),
       'audioFile': audioFile,
       'isActive': isActive,
     };
@@ -61,13 +66,16 @@ class AlarmModel {
       id: json['id'],
       name: json['name'],
       nextAlarmDateTime: DateTime.parse(json['nextAlarmDateTime']),
-      lastAlarmDateTime: json['lastAlarmDateTime'] != null
-          ? DateTime.parse(json['lastAlarmDateTime'])
-          : null,
-      realAlarmDateTime: json['realAlarmDateTime'] != null
-          ? DateTime.parse(json['realAlarmDateTime'])
-          : null,
+      lastAlarmDateTime:
+          json['lastAlarmDateTime'] != null
+              ? DateTime.parse(json['lastAlarmDateTime'])
+              : null,
+      realAlarmDateTime:
+          json['realAlarmDateTime'] != null
+              ? DateTime.parse(json['realAlarmDateTime'])
+              : null,
       periodicity: AlarmPeriodicity.fromJson(json['periodicity']),
+      limit: AlarmLimit.fromJson(json['limit']),
       audioFile: json['audioFile'],
       isActive: json['isActive'] ?? true,
     );
@@ -86,11 +94,7 @@ class AlarmPeriodicity {
   });
 
   Duration get duration {
-    return Duration(
-      days: days,
-      hours: hours,
-      minutes: minutes,
-    );
+    return Duration(days: days, hours: hours, minutes: minutes);
   }
 
   String get formattedString {
@@ -98,11 +102,7 @@ class AlarmPeriodicity {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'days': days,
-      'hours': hours,
-      'minutes': minutes,
-    };
+    return {'days': days, 'hours': hours, 'minutes': minutes};
   }
 
   factory AlarmPeriodicity.fromJson(Map<String, dynamic> json) {
@@ -118,11 +118,69 @@ class AlarmPeriodicity {
     if (parts.length != 3) {
       throw ArgumentError('Invalid periodicity format. Expected dd:hh:mm');
     }
-    
+
     return AlarmPeriodicity(
       days: int.parse(parts[0]),
       hours: int.parse(parts[1]),
       minutes: int.parse(parts[2]),
+    );
+  }
+}
+
+class AlarmLimit {
+  final int fromHours;
+  final int fromMinutes;
+  final int toHours;
+  final int toMinutes;
+
+  AlarmLimit({
+    required this.fromHours,
+    required this.fromMinutes,
+    required this.toHours,
+    required this.toMinutes,
+  });
+
+  Duration get fromDuration {
+    return Duration(hours: fromHours, minutes: fromMinutes);
+  }
+
+  Duration get toDuration {
+    return Duration(hours: toHours, minutes: toMinutes);
+  }
+
+  String get formattedString {
+    return 'from ${fromHours.toString().padLeft(2, '0')}:${fromMinutes.toString().padLeft(2, '0')} to ${toHours.toString().padLeft(2, '0')}:${toMinutes.toString().padLeft(2, '0')}';
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fromHours': fromHours,
+      'fromMinutes': fromMinutes,
+      'toHours': toHours,
+      'toMinutes': toMinutes,
+    };
+  }
+
+  factory AlarmLimit.fromJson(Map<String, dynamic> json) {
+    return AlarmLimit(
+      fromHours: json['fromHours'],
+      fromMinutes: json['fromMinutes'],
+      toHours: json['toHours'],
+      toMinutes: json['toMinutes'],
+    );
+  }
+
+  factory AlarmLimit.fromString(String limit) {
+    final parts = limit.split(':');
+    if (parts.length != 4) {
+      throw ArgumentError('Invalid limit format. Expected hh:mm hh:mm');
+    }
+
+    return AlarmLimit(
+      fromHours: int.parse(parts[0]),
+      fromMinutes: int.parse(parts[1]),
+      toHours: int.parse(parts[2]),
+      toMinutes: int.parse(parts[3]),
     );
   }
 }
