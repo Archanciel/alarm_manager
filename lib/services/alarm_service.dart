@@ -1,4 +1,4 @@
-// lib/services/alarm_service.dart - Completely silent background alarms
+// lib/services/alarm_service.dart - Fixed version with proper time limit logic
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logger/logger.dart';
@@ -176,12 +176,79 @@ class AlarmService {
     return nextTime;
   }
 
+  /// Check if current time is within the alarm's allowed time limit
+  bool _isWithinTimeLimit(DateTime currentTime, AlarmLimit limit) {
+    final int currentTotalMinutes = currentTime.hour * 60 + currentTime.minute;
+    final int fromTotalMinutes = limit.fromHours * 60 + limit.fromMinutes;
+    final int toTotalMinutes = limit.toHours * 60 + limit.toMinutes;
+    
+    if (fromTotalMinutes <= toTotalMinutes) {
+      // Normal case: 08:00 to 22:00 (same day)
+      return currentTotalMinutes >= fromTotalMinutes && currentTotalMinutes <= toTotalMinutes;
+    } else {
+      // Crossing midnight: 22:00 to 06:00 (next day)
+      return currentTotalMinutes >= fromTotalMinutes || currentTotalMinutes <= toTotalMinutes;
+    }
+  }
+
+  /// Reschedule alarm for the next valid time window
+  Future<void> _rescheduleAlarmForNextValidTime(AlarmModel alarm) async {
+    try {
+      final now = DateTime.now();
+      final limit = alarm.limit;
+      
+      DateTime nextValidTime;
+      
+      // Check if limit crosses midnight (e.g., 22:00 to 06:00)
+      final bool crossesMidnight = (limit.fromHours * 60 + limit.fromMinutes) > 
+                                   (limit.toHours * 60 + limit.toMinutes);
+      
+      if (crossesMidnight) {
+        // Handle midnight crossing (e.g., 22:00 to 06:00)
+        final todayValidStart = DateTime(
+          now.year, now.month, now.day,
+          limit.fromHours, limit.fromMinutes,
+        );
+        final tomorrowValidStart = DateTime(
+          now.year, now.month, now.day + 1,
+          limit.fromHours, limit.fromMinutes,
+        );
+        
+        if (now.isBefore(todayValidStart)) {
+          nextValidTime = todayValidStart;
+        } else {
+          nextValidTime = tomorrowValidStart;
+        }
+      } else {
+        // Normal case (e.g., 08:00 to 22:00)
+        final todayValidStart = DateTime(
+          now.year, now.month, now.day,
+          limit.fromHours, limit.fromMinutes,
+        );
+        final tomorrowValidStart = DateTime(
+          now.year, now.month, now.day + 1,
+          limit.fromHours, limit.fromMinutes,
+        );
+        
+        nextValidTime = now.isBefore(todayValidStart) 
+            ? todayValidStart 
+            : tomorrowValidStart;
+      }
+      
+      // Update alarm with new time
+      final updatedAlarm = alarm.copyWith(nextAlarmDateTime: nextValidTime);
+      await updateAlarm(updatedAlarm);
+      
+      _logger.i('📅 Rescheduled alarm "${alarm.name}" to next valid time: $nextValidTime');
+    } catch (e) {
+      _logger.e('Error rescheduling alarm: $e');
+    }
+  }
+
   Future<void> checkAndTriggerAlarms() async {
     try {
       final alarms = await getAlarms();
       final now = DateTime.now();
-      final int hour = now.hour;
-      final int minute = now.minute;
 
       _logger.i('🔍 Checking ${alarms.length} alarms at $now (SILENT mode)');
 
@@ -190,17 +257,23 @@ class AlarmService {
         _logger.i('  - Active: ${alarm.isActive}');
         _logger.i('  - Next alarm: ${alarm.nextAlarmDateTime}');
         _logger.i('  - Time passed: ${now.isAfter(alarm.nextAlarmDateTime)}');
+        _logger.i('  - Time limit: ${alarm.limit.formattedString}');
+        
+        final bool isOverdue = now.isAfter(alarm.nextAlarmDateTime);
+        final bool isWithinTimeLimit = _isWithinTimeLimit(now, alarm.limit);
+        
+        _logger.i('  - Is overdue: $isOverdue');
+        _logger.i('  - Within time limit: $isWithinTimeLimit');
 
-        if (alarm.isActive &&
-            now.isAfter(alarm.nextAlarmDateTime) &&
-            hour >= alarm.limit.fromHours &&
-            minute >= alarm.limit.fromMinutes &&
-            hour <= alarm.limit.toHours &&
-            minute <= alarm.limit.toMinutes) {
+        if (alarm.isActive && isOverdue && isWithinTimeLimit) {
           _logger.i(
             '⏰ Triggering overdue alarm (CUSTOM sound only): ${alarm.name}',
           );
           await _handleAlarmTrigger(alarm.id);
+        } else if (alarm.isActive && isOverdue && !isWithinTimeLimit) {
+          _logger.i('⏸️ Alarm overdue but outside time limit: ${alarm.name}');
+          // Optionally reschedule for next valid time window
+          await _rescheduleAlarmForNextValidTime(alarm);
         }
       }
     } catch (e) {

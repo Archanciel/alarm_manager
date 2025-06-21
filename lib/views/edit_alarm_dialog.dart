@@ -704,6 +704,13 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
         minutes: int.parse(_minutesController.text),
       );
 
+      final AlarmLimit limit = AlarmLimit(
+          fromHours: int.parse(_limitFromHoursController.text),
+          fromMinutes: int.parse(_limitFromMinutesController.text),
+          toHours: int.parse(_limitToHoursController.text),
+          toMinutes: int.parse(_limitToMinutesController.text),
+        );
+
       // Combine selected date and time
       final nextAlarmDateTime = DateTime(
         _selectedDate.year,
@@ -724,6 +731,7 @@ class _EditAlarmDialogState extends State<EditAlarmDialog> {
         name: _nameController.text.trim(),
         nextAlarmDateTime: calculatedNextAlarm,
         periodicity: periodicity,
+        limit: limit,
         audioFile: _selectedAudioFile,
       );
 

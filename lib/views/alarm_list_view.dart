@@ -414,8 +414,12 @@ class _AlarmListViewState extends State<AlarmListView>
                     isBold: true,
                   ),
                   _buildAlarmDetail(
-                    'Periodicity:',
+                    'Periodicity dd:hh:mm:',
                     alarm.periodicity.formattedString,
+                  ),
+                  _buildAlarmDetail(
+                    'Limit hh:mm:',
+                    alarm.limit.formattedString,
                   ),
                   _buildAlarmDetail('Audio file:', alarm.audioFile),
                 ],
