@@ -13,7 +13,6 @@ class AlarmService {
   late AudioService _audioService;
 
   Future<List<AlarmModel>> getAlarms() async {
-
     _audioService = await AudioService.getInstance();
 
     try {
@@ -50,8 +49,10 @@ class AlarmService {
 
       // Schedule ONLY silent notification - NO AndroidAlarmManager
       await _notificationService.scheduleAlarmNotification(alarm);
-      
-      _logger.i('✅ Alarm added (SILENT): ${alarm.name} for ${alarm.nextAlarmDateTime}');
+
+      _logger.i(
+        '✅ Alarm added (SILENT): ${alarm.name} for ${alarm.nextAlarmDateTime}',
+      );
     } catch (e) {
       _logger.e('Error adding alarm: $e');
     }
@@ -112,7 +113,7 @@ class AlarmService {
 
       // Play ONLY custom sound - no system sounds involved
       await _audioService.playAlarm(alarm.audioFile);
-      
+
       // Show completely silent notification
       await _notificationService.showAlarmTriggeredNotification(alarm);
 
@@ -143,7 +144,6 @@ class AlarmService {
 
       _logger.i('✅ Alarm "${alarm.name}" triggered with CUSTOM sound ONLY');
       _logger.i('🔊 NO system sounds - Playing: ${alarm.audioFile}');
-      
     } catch (e) {
       _logger.e('Error handling alarm trigger: $e');
     }
@@ -154,7 +154,7 @@ class AlarmService {
     AlarmPeriodicity periodicity,
   ) {
     DateTime now = DateTime.now();
-    
+
     if (currentAlarmTime.isAfter(now)) {
       _logger.i('Current alarm time is in the future: $currentAlarmTime');
       return currentAlarmTime;
@@ -169,7 +169,9 @@ class AlarmService {
     }
 
     _logger.i('Calculating next alarm:');
-    _logger.i('  Current alarm: $currentAlarmTime + $i Period: ${periodicity.duration} = Next alarm: $nextTime');
+    _logger.i(
+      '  Current alarm: $currentAlarmTime + $i Period: ${periodicity.duration} = Next alarm: $nextTime',
+    );
 
     return nextTime;
   }
@@ -178,6 +180,8 @@ class AlarmService {
     try {
       final alarms = await getAlarms();
       final now = DateTime.now();
+      final int hour = now.hour;
+      final int minute = now.minute;
 
       _logger.i('🔍 Checking ${alarms.length} alarms at $now (SILENT mode)');
 
@@ -187,8 +191,15 @@ class AlarmService {
         _logger.i('  - Next alarm: ${alarm.nextAlarmDateTime}');
         _logger.i('  - Time passed: ${now.isAfter(alarm.nextAlarmDateTime)}');
 
-        if (alarm.isActive && now.isAfter(alarm.nextAlarmDateTime)) {
-          _logger.i('⏰ Triggering overdue alarm (CUSTOM sound only): ${alarm.name}');
+        if (alarm.isActive &&
+            now.isAfter(alarm.nextAlarmDateTime) &&
+            hour >= alarm.limit.fromHours &&
+            minute >= alarm.limit.fromMinutes &&
+            hour <= alarm.limit.toHours &&
+            minute <= alarm.limit.toMinutes) {
+          _logger.i(
+            '⏰ Triggering overdue alarm (CUSTOM sound only): ${alarm.name}',
+          );
           await _handleAlarmTrigger(alarm.id);
         }
       }
