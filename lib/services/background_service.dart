@@ -1,6 +1,7 @@
 // lib/services/background_service.dart - SILENT background service
 import 'package:logger/logger.dart';
 import 'dart:async';
+import '../constants.dart';
 import 'alarm_service.dart';
 
 class BackgroundService {
@@ -21,9 +22,9 @@ class BackgroundService {
 
   void _startForegroundTimer() {
     _foregroundTimer?.cancel();
-    
-    // Check every 30 seconds when app is in foreground
-    _foregroundTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+
+    // Check every kAlarmCheckIntervalSeconds when app is in foreground
+    _foregroundTimer = Timer.periodic(Duration(seconds: kAlarmCheckIntervalSeconds), (timer) async {
       _logger.i('🔄 Silent foreground timer check - ${DateTime.now()}');
       
       try {

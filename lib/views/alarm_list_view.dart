@@ -73,7 +73,8 @@ class _AlarmListViewState extends State<AlarmListView>
 
     if (!_isAppInForeground) return;
 
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
+    // Check every kAlarmCheckIntervalSeconds when app is in background
+    _refreshTimer = Timer.periodic(const Duration(seconds: kAlarmCheckIntervalSeconds), (timer) async {
       if (!_isAppInForeground || !mounted) {
         timer.cancel();
         return;
