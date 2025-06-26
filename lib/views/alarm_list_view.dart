@@ -74,7 +74,7 @@ class _AlarmListViewState extends State<AlarmListView>
     if (!_isAppInForeground) return;
 
     // Check every kAlarmCheckIntervalSeconds when app is in background
-    _refreshTimer = Timer.periodic(const Duration(seconds: kAlarmCheckIntervalSeconds), (timer) async {
+    _refreshTimer = Timer.periodic(const Duration(seconds: kAlarmBackgroundCheckIntervalSeconds), (timer) async {
       if (!_isAppInForeground || !mounted) {
         timer.cancel();
         return;
@@ -88,7 +88,7 @@ class _AlarmListViewState extends State<AlarmListView>
       }
     });
 
-    _logger.i('✅ Auto-refresh started (every 15 seconds)');
+    _logger.i('✅ Auto-refresh started (every $kAlarmBackgroundCheckIntervalSeconds seconds)');
   }
 
   void _stopAutoRefresh() {
@@ -192,7 +192,7 @@ class _AlarmListViewState extends State<AlarmListView>
                     const SizedBox(width: 4),
                     Text(
                       _refreshTimer?.isActive == true
-                          ? 'Auto-refresh: ON (15s)'
+                          ? 'Auto-refresh: ON (${kAlarmBackgroundCheckIntervalSeconds}s)'
                           : 'Auto-refresh: OFF',
                       style: const TextStyle(
                         color: Colors.white70,

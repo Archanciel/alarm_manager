@@ -1,2 +1,3 @@
-const String kApplicationVersion = '1.31';
-const int kAlarmCheckIntervalSeconds = 60; // Interval for foreground timer checks
+const String kApplicationVersion = '1.32';
+const int kAlarmForegroundCheckIntervalSeconds = 15; // Interval for background timer checks
+const int kAlarmBackgroundCheckIntervalSeconds = 30; // Interval for foreground timer checks

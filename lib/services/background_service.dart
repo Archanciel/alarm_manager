@@ -24,7 +24,7 @@ class BackgroundService {
     _foregroundTimer?.cancel();
 
     // Check every kAlarmCheckIntervalSeconds when app is in foreground
-    _foregroundTimer = Timer.periodic(Duration(seconds: kAlarmCheckIntervalSeconds), (timer) async {
+    _foregroundTimer = Timer.periodic(Duration(seconds: kAlarmForegroundCheckIntervalSeconds), (timer) async {
       _logger.i('🔄 Silent foreground timer check - ${DateTime.now()}');
       
       try {
